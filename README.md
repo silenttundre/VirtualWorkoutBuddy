@@ -4,5 +4,5 @@
 ## Problem Statement:
   Poor workout form → injuries, inefficient results.
 ## Lack of access to personal trainers.
-  Solution:AI-driven real-time form analysis for everyone.
+  Solution: AI-driven real-time form analysis for everyone.
 
