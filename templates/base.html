@@ -1,0 +1,45 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Virtual Workout Buddy{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <nav class="main-nav">
+                <div class="logo">
+                    <a href="{{ url_for('home') }}">
+                        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Virtual Workout Buddy Logo" class="logo-image">
+                    </a>
+                    <h1>Virtual Workout Buddy</h1>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('home') }}" class="active">Home</a></li>
+                    <li><a href="{{ url_for('about') }}">About</a></li>
+                    <li><a href="{{ url_for('contact') }}">Contact</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Virtual Workout Buddy | Powered by AI</p>
+        </footer>
+    </div>
+
+    <!-- In base.html, make sure you have this in the scripts block -->
+    {% block scripts %}
+    <script src="{{ url_for('static', filename='js/enhanced-script.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/chatbot-script.js') }}"></script>
+    {% endblock %}
+
+</body>
+</html>
