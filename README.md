@@ -11,4 +11,9 @@
   Core Belief: "Proper form is the foundation of any successful workout routine."<br>
   Vision: Democratize fitness coaching with AI.<br>
 
+# How it works!
+  Step 1: User uploads workout image/video.<br>
+  Step 2: AI analyzes posture, joint angles, and movement.<br>
+  Step 3: Instant feedback with corrections (e.g., "Lower your knees!").<br>
+
 
