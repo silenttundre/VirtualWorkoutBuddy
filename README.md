@@ -16,4 +16,8 @@
   Step 2: AI analyzes posture, joint angles, and movement.<br>
   Step 3: Instant feedback with corrections (e.g., "Lower your knees!").<br>
 
+# Technology Stack:
+AI/ML: Pose estimation model (Yolo V5).<br>
+Backend: Python, Flask/Django.<br>
+Frontend: HTML/CSS/JavaScript.<br>
 
