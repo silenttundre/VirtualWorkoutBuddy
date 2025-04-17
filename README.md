@@ -1,4 +1,4 @@
-"# VirtualWorkoutBuddy" 
+# VirtualWorkoutBuddy
 ## Purpose:
   "Created by fitness enthusiasts and AI experts to help people exercise safely and effectively."
 ## Problem Statement:
