@@ -1,6 +1,4 @@
-// chatbot-script.js
 document.addEventListener('DOMContentLoaded', function() {
-    // Get DOM elements
     const chatbotWidget = document.getElementById('chatbot-widget');
     const chatbotToggle = document.getElementById('chatbot-toggle');
     const chatbotCard = document.getElementById('chatbot-card');
@@ -9,7 +7,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatbotSend = document.getElementById('chatbot-send');
     const closeButton = document.querySelector('.close-chatbot');
     
-    // Toggle chatbot card
     chatbotToggle.addEventListener('click', function() {
         chatbotCard.classList.toggle('active');
         if (chatbotCard.classList.contains('active')) {
@@ -17,21 +14,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Close chatbot card
     closeButton.addEventListener('click', function() {
         chatbotCard.classList.remove('active');
     });
     
-    // Send message
     function sendMessage() {
         const message = chatbotInput.value.trim();
         if (message === '') return;
         
-        // Add user message
         addChatMessage(message, 'user-message');
         chatbotInput.value = '';
-        
-        // Process user message and respond
         processUserMessage(message);
     }
     
@@ -42,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add message to chat
     function addChatMessage(text, className) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${className}`;
@@ -52,12 +43,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         messageDiv.appendChild(messagePara);
         chatbotCardBody.appendChild(messageDiv);
-        
-        // Scroll to bottom
         chatbotCardBody.scrollTop = chatbotCardBody.scrollHeight;
     }
     
-    // Add typing indicator
     function showTypingIndicator() {
         const typingDiv = document.createElement('div');
         typingDiv.className = 'chatbot-typing';
@@ -71,20 +59,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return typingDiv;
     }
     
-    // Process user message
     function processUserMessage(message) {
         const typingIndicator = showTypingIndicator();
         
-        // Simulate thinking time
         setTimeout(() => {
-            // Remove typing indicator
             if (chatbotCardBody.contains(typingIndicator)) {
                 chatbotCardBody.removeChild(typingIndicator);
             }
             
             const lowerMessage = message.toLowerCase();
             
-            // Check for keywords and respond accordingly
             if (lowerMessage.includes('upload') || lowerMessage.includes('image') || lowerMessage.includes('photo') || lowerMessage.includes('picture')) {
                 addChatMessage("Great! You can upload an image by clicking the 'Try It Now' button on the page, or you can drag and drop an image directly into the upload area.", 'bot-message');
                 
@@ -92,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     addChatMessage("Make sure to select the correct exercise type from the dropdown menu before uploading.", 'bot-message');
                 }, 1000);
                 
-                // Scroll to analyzer section
                 const analyzerSection = document.getElementById('analyzer');
                 if (analyzerSection) {
                     setTimeout(() => {
@@ -127,7 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
     
-    // Suggest uploading image after 5 seconds
     setTimeout(() => {
         if (!chatbotCard.classList.contains('active')) {
             chatbotToggle.classList.add('pulse-animation');

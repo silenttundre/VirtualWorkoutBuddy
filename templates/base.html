@@ -35,11 +35,11 @@
         </footer>
     </div>
 
-    <!-- In base.html, make sure you have this in the scripts block -->
+    <!-- In base.html, remove or comment out these lines: -->
     {% block scripts %}
-    <script src="{{ url_for('static', filename='js/enhanced-script.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/chatbot-script.js') }}"></script>
+    <!-- Remove these lines if you're using inline JavaScript -->
+    <!-- <script src="{{ url_for('static', filename='js/enhanced-script.js') }}"></script> -->
+    <!-- <script src="{{ url_for('static', filename='js/chatbot-script.js') }}"></script> -->
     {% endblock %}
-
 </body>
 </html>

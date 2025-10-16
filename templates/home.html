@@ -26,6 +26,19 @@
 
 <section id="analyzer" class="analyzer-section">
     <div class="upload-section">
+        <!-- Add Exercise Selection Dropdown -->
+        <div class="exercise-selector" id="exercise-selector">
+            <label for="exercise-select">Select exercise type:</label>
+            <select id="exercise-select">
+                <option value="general">General Posture</option>
+                <option value="squat">Squat</option>
+                <option value="pushup">Push-up</option>
+                <option value="plank">Plank</option>
+                <option value="lunge">Lunge</option>
+                <option value="deadlift">Deadlift</option>
+            </select>
+        </div>
+        
         <div class="upload-container" id="upload-container">
             <div class="upload-area" id="upload-area">
                 <div class="upload-icon">
@@ -51,6 +64,7 @@
 
     <div class="results-section" id="results-section">
         <div class="results-container">
+            <!-- Your existing results content -->
             <div class="image-container">
                 <img id="result-image" src="" alt="Analyzed workout pose">
             </div>
@@ -67,11 +81,19 @@
                     <h3>Workout Buddy</h3>
                 </div>
                 <div class="chatbot-messages" id="chatbot-messages">
+                    <!-- MESSAGES WILL APPEAR HERE -->
                     <div class="message bot-message">
                         <p>Hi there! Upload a workout image and I'll analyze your form.</p>
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- ADD THIS RESET BUTTON -->
+        <div class="results-actions" style="text-align: center; margin-top: 20px;">
+            <button onclick="resetUploadUI()" class="cta-button" style="background-color: #6c757d;">
+                Analyze Another Image
+            </button>
         </div>
     </div>
 </section>
@@ -107,4 +129,308 @@
         </div>
     </div>
 </div>
+
+<!-- Clean JavaScript with exercise selection -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Workout Analyzer Initialized');
+    
+    const uploadArea = document.getElementById('upload-area');
+    const fileUpload = document.getElementById('file-upload');
+    const uploadContainer = document.getElementById('upload-container');
+    const loadingElement = document.getElementById('loading');
+    const exerciseSelect = document.getElementById('exercise-select');
+    
+    // Track selected exercise
+    let selectedExercise = 'general';
+    
+    if (!uploadArea || !fileUpload || !exerciseSelect) {
+        console.error('Required elements not found');
+        return;
+    }
+    
+    // Handle exercise selection change
+    exerciseSelect.addEventListener('change', function() {
+        selectedExercise = this.value;
+        console.log('Exercise selected:', selectedExercise);
+    });
+    
+    // Make upload area clickable (but prevent double triggering)
+    uploadArea.style.cursor = 'pointer';
+    uploadArea.addEventListener('click', function(e) {
+        // Only trigger file input if the click wasn't on the label itself
+        if (e.target.tagName !== 'LABEL' && !e.target.classList.contains('custom-file-upload')) {
+            console.log('📁 Upload area clicked');
+            fileUpload.click();
+        }
+    });
+    
+    // Handle file selection
+    fileUpload.addEventListener('change', function() {
+        console.log('📄 File selected:', this.files[0]);
+        if (this.files.length > 0) {
+            handleFileUpload(this.files[0]);
+        }
+    });
+    
+    // Add drag and drop
+    uploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#007bff';
+        this.style.backgroundColor = '#f0f8ff';
+    });
+    
+    uploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '';
+        this.style.backgroundColor = '';
+    });
+    
+    uploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '';
+        this.style.backgroundColor = '';
+        if (e.dataTransfer.files.length) {
+            console.log('📁 File dropped:', e.dataTransfer.files[0]);
+            handleFileUpload(e.dataTransfer.files[0]);
+        }
+    });
+});
+
+function handleFileUpload(file) {
+    console.log('🔄 Starting file upload:', file.name);
+    
+    if (!file.type.match('image.*')) {
+        alert('Please select an image file (JPEG, PNG, etc.)');
+        return;
+    }
+    
+    // Get the selected exercise
+    const exerciseSelect = document.getElementById('exercise-select');
+    const selectedExercise = exerciseSelect ? exerciseSelect.value : 'auto';
+    
+    // Show loading state - make sure spinner is visible
+    const uploadContainer = document.getElementById('upload-container');
+    const loadingElement = document.getElementById('loading');
+    
+    if (uploadContainer) {
+        uploadContainer.style.display = 'none';
+        console.log('📊 Upload container hidden');
+    }
+    if (loadingElement) {
+        loadingElement.style.display = 'block';
+        console.log('🔄 Loading spinner shown');
+    }
+    
+    // Create form data
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('exercise_type', selectedExercise);
+    
+    console.log('📤 Sending upload request to /upload with exercise:', selectedExercise);
+    
+    // Send to server
+    fetch('/upload', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log('📥 Response status:', response.status);
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('✅ Upload successful');
+        
+        // Hide loading
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+            console.log('✅ Loading spinner hidden');
+        }
+        
+        if (data.error) {
+            alert('Error: ' + data.error);
+            if (uploadContainer) uploadContainer.style.display = 'flex';
+            return;
+        }
+        
+        // Show results section
+        const resultsSection = document.getElementById('results-section');
+        if (resultsSection) {
+            resultsSection.style.display = 'block';
+            console.log('✅ Results section shown');
+        }
+        
+        // Display annotated image
+        const resultImage = document.getElementById('result-image');
+        if (resultImage && data.image) {
+            resultImage.src = `data:image/jpeg;base64,${data.image}`;
+            resultImage.style.display = 'block';
+            console.log('✅ Result image set');
+        }
+        
+        // Display analysis in chatbot - UPDATE BOTH AREAS
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const floatingChatbot = document.getElementById('chatbot-card-body');
+
+        function updateChatbotMessages(container, data) {
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            console.log('DEBUG: Analysis data received:', data.analysis);
+            console.log('DEBUG: Feedback array:', data.analysis.feedback);
+            
+            // Add exercise type info
+            const exerciseDiv = document.createElement('div');
+            exerciseDiv.className = 'message bot-message';
+            exerciseDiv.innerHTML = `<p><strong>Exercise analyzed:</strong> ${data.analysis.exercise_type}</p>`;
+            container.appendChild(exerciseDiv);
+            
+            // Check if we have chatbot feedback
+            if (data.analysis.feedback && Array.isArray(data.analysis.feedback) && data.analysis.feedback.length > 0) {
+                console.log('DEBUG: Using chatbot feedback messages');
+                // Use the chatbot-generated feedback
+                data.analysis.feedback.forEach(feedbackText => {
+                    const feedbackDiv = document.createElement('div');
+                    feedbackDiv.className = 'message bot-message';
+                    
+                    // Apply different styling based on status
+                    if (data.analysis.status === 'proper' || data.analysis.status === 'good') {
+                        feedbackDiv.classList.add('proper-message');
+                    } else if (data.analysis.status === 'needs_work') {
+                        feedbackDiv.classList.add('needs-work-message');
+                    } else {
+                        feedbackDiv.classList.add('improper-message');
+                    }
+                    
+                    // Handle both string and object formats
+                    const messageText = typeof feedbackText === 'string' ? feedbackText : JSON.stringify(feedbackText);
+                    feedbackDiv.innerHTML = `<p>${messageText}</p>`;
+                    container.appendChild(feedbackDiv);
+                });
+            } 
+            // If no chatbot feedback, use the assessment and issues/suggestions
+            else if (data.analysis.assessment) {
+                console.log('DEBUG: Using fallback assessment data');
+                const assessmentDiv = document.createElement('div');
+                assessmentDiv.className = 'message bot-message';
+                
+                // Add visual indicator for proper/improper form
+                if (data.analysis.status === 'proper' || data.analysis.status === 'good') {
+                    assessmentDiv.classList.add('proper-message');
+                    assessmentDiv.innerHTML = `<p style="color: #28a745;"><strong>✅ ${data.analysis.assessment}</strong></p>`;
+                } else {
+                    assessmentDiv.classList.add('improper-message');
+                    assessmentDiv.innerHTML = `<p style="color: #dc3545;"><strong>⚠️ ${data.analysis.assessment}</strong></p>`;
+                }
+                container.appendChild(assessmentDiv);
+                
+                // Add issues if any
+                if (data.analysis.issues && data.analysis.issues.length > 0) {
+                    const issuesDiv = document.createElement('div');
+                    issuesDiv.className = 'message bot-message';
+                    let issuesHTML = '<p><strong>Issues detected:</strong></p><ul>';
+                    data.analysis.issues.forEach(issue => {
+                        issuesHTML += `<li>${issue}</li>`;
+                    });
+                    issuesHTML += '</ul>';
+                    issuesDiv.innerHTML = issuesHTML;
+                    container.appendChild(issuesDiv);
+                }
+                
+                // Add suggestions if any
+                if (data.analysis.suggestions && data.analysis.suggestions.length > 0) {
+                    const suggestionsDiv = document.createElement('div');
+                    suggestionsDiv.className = 'message bot-message';
+                    let suggestionsHTML = '<p><strong>Suggestions for improvement:</strong></p><ul>';
+                    data.analysis.suggestions.forEach(suggestion => {
+                        suggestionsHTML += `<li>${suggestion}</li>`;
+                    });
+                    suggestionsHTML += '</ul>';
+                    suggestionsDiv.innerHTML = suggestionsHTML;
+                    container.appendChild(suggestionsDiv);
+                }
+            }
+            // Final fallback
+            else {
+                console.log('DEBUG: Using final fallback message');
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'message bot-message';
+                fallbackDiv.innerHTML = `<p>Analysis complete. Form status: ${data.analysis.status || 'unknown'}</p>`;
+                container.appendChild(fallbackDiv);
+            }
+        }
+
+        // Update both chatbot areas
+        if (chatbotMessages) {
+            updateChatbotMessages(chatbotMessages, data);
+        }
+        if (floatingChatbot) {
+            updateChatbotMessages(floatingChatbot, data);
+        }
+
+        console.log('✅ Chatbot messages updated in both areas');
+    })
+    .catch(error => {
+        console.error('❌ Upload failed:', error);
+        if (loadingElement) {
+            loadingElement.style.display = 'none';
+            console.log('❌ Loading spinner hidden due to error');
+        }
+        if (uploadContainer) {
+            uploadContainer.style.display = 'flex';
+            console.log('✅ Upload container shown again');
+        }
+        alert('Upload failed: ' + error.message);
+    });
+}
+
+function resetUploadUI() {
+    console.log('🔄 Resetting upload UI');
+    
+    const uploadContainer = document.getElementById('upload-container');
+    const loadingElement = document.getElementById('loading');
+    const resultsSection = document.getElementById('results-section');
+    const fileUpload = document.getElementById('file-upload');
+    const resultImage = document.getElementById('result-image');
+    const chatbotMessages = document.getElementById('chatbot-messages');
+    
+    // Reset file input
+    if (fileUpload) {
+        fileUpload.value = '';
+    }
+    
+    // Reset image display
+    if (resultImage) {
+        resultImage.src = '';
+        resultImage.style.display = 'none';
+    }
+    
+    // Reset chatbot messages to initial state
+    if (chatbotMessages) {
+        chatbotMessages.innerHTML = `
+            <div class="message bot-message">
+                <p>Hi there! Upload a workout image and I'll analyze your form.</p>
+            </div>
+        `;
+    }
+    
+    // Show upload container, hide loading and results
+    if (uploadContainer) {
+        uploadContainer.style.display = 'flex';
+    }
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+    if (resultsSection) {
+        resultsSection.style.display = 'none';
+    }
+    
+    console.log('✅ Upload UI reset complete');
+}
+</script>
+
 {% endblock %}

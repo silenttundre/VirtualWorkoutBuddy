@@ -1,0 +1,809 @@
+<!-- templates/training.html -->
+{% extends "base.html" %}
+
+{% block title %}Training - Virtual Workout Buddy{% endblock %}
+
+{% block content %}
+<section class="training-section">
+    <div class="training-header">
+        <h2>Train Your Workout Buddy</h2>
+        <p>Upload reference images to help improve exercise form analysis. Add examples of both proper and improper form for each exercise type.</p>
+    </div>
+
+    <!-- Training Statistics -->
+    <section class="training-stats">
+        <h3>Current Training Data</h3>
+        <div class="stats-grid">
+            {% for exercise, data in stats.items() %}
+            <div class="stat-card">
+                <h4>{{ exercise.title() }}</h4>
+                <div class="stat-numbers">
+                    <div class="stat-item proper">
+                        <span class="count">{{ data.proper_references }}</span>
+                        <span class="label">Proper Examples</span>
+                    </div>
+                    <div class="stat-item improper">
+                        <span class="count">{{ data.improper_references }}</span>
+                        <span class="label">Improper Examples</span>
+                    </div>
+                </div>
+                <div class="total-stat">
+                    Total: {{ data.total_references }} references
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Upload Training Images -->
+    <section class="training-upload">
+        <h3>Add Training Images</h3>
+        <div class="upload-form-container">
+            <form id="training-form" class="training-form" enctype="multipart/form-data">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="training-exercise-select">Exercise Type:</label>
+                        <select id="training-exercise-select" name="exercise_type" required>
+                            <option value="">Select Exercise</option>
+                            <option value="squat">Squat</option>
+                            <option value="pushup">Push-up</option>
+                            <option value="plank">Plank</option>
+                            <option value="lunge">Lunge</option>
+                            <option value="deadlift">Deadlift</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-quality-select">Form Quality:</label>
+                        <select id="form-quality-select" name="form_quality" required>
+                            <option value="">Select Quality</option>
+                            <option value="proper">Proper Form</option>
+                            <option value="improper">Improper Form</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="file-upload-area">
+                    <div class="upload-zone" id="training-upload-zone">
+                        <div class="upload-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <p>Drag & drop training images here (multiple files supported)</p>
+                        <p>or</p>
+                        <label for="training-file-input" class="file-button">Choose Files</label>
+                        <input type="file" id="training-file-input" name="file" accept="image/*" multiple required>
+                        <div id="file-list" class="file-list"></div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="submit-btn">Add Training Images</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Upload Status -->
+        <div id="upload-status" class="upload-status"></div>
+    </section>
+
+    <!-- Reference Images Gallery -->
+    <section class="reference-gallery">
+        <h3>Reference Images</h3>
+        <div class="gallery-controls">
+            <div class="filter-controls">
+                <select id="gallery-exercise-filter">
+                    <option value="">All Exercises</option>
+                    <option value="squat">Squat</option>
+                    <option value="pushup">Push-up</option>
+                    <option value="plank">Plank</option>
+                    <option value="lunge">Lunge</option>
+                    <option value="deadlift">Deadlift</option>
+                </select>
+                <select id="gallery-quality-filter">
+                    <option value="">All Qualities</option>
+                    <option value="proper">Proper Form</option>
+                    <option value="improper">Improper Form</option>
+                </select>
+                <button id="refresh-gallery" class="refresh-btn">Refresh Gallery</button>
+            </div>
+        </div>
+
+        <div id="reference-images-grid" class="reference-grid">
+            <!-- Images will be loaded here via JavaScript -->
+        </div>
+    </section>
+
+    <!-- Instructions -->
+    <section class="training-instructions">
+        <h3>Training Guidelines</h3>
+        <div class="instructions-grid">
+            <div class="instruction-card">
+                <h4>Proper Form Images</h4>
+                <ul>
+                    <li>Clear, well-lit photos showing correct technique</li>
+                    <li>Full body visible in frame</li>
+                    <li>Good examples of ideal positioning</li>
+                    <li>Multiple angles and positions within the exercise</li>
+                </ul>
+            </div>
+            <div class="instruction-card">
+                <h4>Improper Form Images</h4>
+                <ul>
+                    <li>Examples of common mistakes</li>
+                    <li>Poor alignment, incorrect positioning</li>
+                    <li>Safety concerns that should be flagged</li>
+                    <li>Various types of form errors</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+</section>
+
+<style>
+.file-list {
+    margin-top: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    margin: 5px 0;
+    background: #f8f9fa;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-size {
+    color: #666;
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.status-message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+}
+
+.status-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-message.loading {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.reference-image-card {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+}
+
+.reference-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.image-info {
+    padding: 10px;
+}
+
+.quality-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 5px;
+}
+
+.quality-badge.proper {
+    background: #d4edda;
+    color: #155724;
+}
+
+.quality-badge.improper {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.delete-btn:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 1);
+}
+
+/* Add these new styles */
+.submit-btn {
+    position: relative;
+}
+
+.submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+}
+
+.loading-spinner::after {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,.3);
+    border-radius: 50%;
+    border-top-color: #000;
+    animation: spin 1s ease-in-out infinite;
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+.upload-progress {
+    margin-top: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+
+.progress-bar {
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #007bff;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const trainingForm = document.getElementById('training-form');
+    const uploadZone = document.getElementById('training-upload-zone');
+    const fileInput = document.getElementById('training-file-input');
+    const fileList = document.getElementById('file-list');
+    const uploadStatus = document.getElementById('upload-status');
+    const galleryGrid = document.getElementById('reference-images-grid');
+    const exerciseFilter = document.getElementById('gallery-exercise-filter');
+    const qualityFilter = document.getElementById('gallery-quality-filter');
+    const refreshBtn = document.getElementById('refresh-gallery');
+
+    let selectedFiles = [];
+
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        selectedFiles = Array.from(e.target.files);
+        updateFileList();
+    });
+
+    // Update file list display
+    function updateFileList() {
+        fileList.innerHTML = '';
+        if (selectedFiles.length > 0) {
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">(${formatFileSize(file.size)})</span>
+                    <button type="button" class="remove-file" data-index="${index}">×</button>
+                `;
+                fileList.appendChild(fileItem);
+            });
+
+            // Add remove file functionality
+            document.querySelectorAll('.remove-file').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.dataset.index);
+                    selectedFiles.splice(index, 1);
+                    updateFileList();
+                    // Update the actual file input
+                    const dt = new DataTransfer();
+                    selectedFiles.forEach(file => dt.items.add(file));
+                    fileInput.files = dt.files;
+                });
+            });
+        }
+    }
+
+    // Format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Drag and drop functionality
+    uploadZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    uploadZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+    });
+
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            selectedFiles = Array.from(e.dataTransfer.files);
+            // Update the actual file input
+            const dt = new DataTransfer();
+            selectedFiles.forEach(file => dt.items.add(file));
+            fileInput.files = dt.files;
+            updateFileList();
+        }
+    });
+
+    // Form submission
+    trainingForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Get the submit button
+        const submitBtn = this.querySelector('.submit-btn');
+        const originalBtnText = submitBtn.innerHTML;
+        
+        // Basic validation
+        if (selectedFiles.length === 0) {
+            uploadStatus.innerHTML = '<div class="status-message error">Please select at least one file</div>';
+            return;
+        }
+        
+        // Validate files before upload
+        const validationIssues = validateFiles(selectedFiles);
+        if (validationIssues.length > 0) {
+            const issueList = validationIssues.map(issue => `<li>${issue}</li>`).join('');
+            uploadStatus.innerHTML = `
+                <div class="status-message error">
+                    <strong>File validation failed:</strong>
+                    <ul style="margin: 5px 0; padding-left: 20px;">${issueList}</ul>
+                </div>
+            `;
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner"></span>Uploading...';
+        
+        // Log files for debugging
+        console.log(`Uploading ${selectedFiles.length} files:`);
+        selectedFiles.forEach((file, index) => {
+            console.log(`File ${index + 1}: ${file.name} (${file.size} bytes, ${file.type})`);
+        });
+        
+        // Create form data
+        const formData = new FormData(this);
+        selectedFiles.forEach(file => {
+            formData.append('file', file);
+        });
+        
+        // DEBUG: Check what files are being sent
+        console.log('FormData entries:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0], pair[1]);
+        }
+        
+        // DEBUG: Uncomment the next line to see detailed server-side debug info
+        // console.log('Debug upload info:', await debugUpload(formData));
+        
+        // Show upload progress
+        uploadStatus.innerHTML = `
+            <div class="status-message loading">
+                <div>Uploading ${selectedFiles.length} training images...</div>
+                <div class="upload-progress">
+                    <div>Processing files: <span class="progress-text">0/${selectedFiles.length}</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const progressFill = document.getElementById('progress-fill');
+        const progressText = document.querySelector('.progress-text');
+        
+        // Simulate progress
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            if (progress < 80) { // Stop at 80% to leave room for actual processing
+                progress += 10;
+                progressFill.style.width = `${progress}%`;
+            }
+        }, 500);
+        
+        // Make the upload request
+        fetch('/upload_training', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            clearInterval(progressInterval);
+            progressFill.style.width = '100%';
+            return response.json();
+        })
+        .then(data => {
+            console.log('Upload response:', data);
+            
+            // Always re-enable button first
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            
+            if (data.success) {
+                let successMessage = `<div class="status-message success">${data.message}</div>`;
+                
+                // Show individual file errors if any
+                if (data.errors && data.errors.length > 0) {
+                    const errorList = data.errors.map(error => `<li>${error}</li>`).join('');
+                    successMessage += `
+                        <div class="status-message error">
+                            <strong>Some files had issues:</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px;">${errorList}</ul>
+                        </div>
+                    `;
+                }
+                
+                uploadStatus.innerHTML = successMessage;
+                
+                // Reset form and refresh data
+                trainingForm.reset();
+                selectedFiles = [];
+                updateFileList();
+                refreshGallery();
+                updateStats();
+                
+            } else {
+                // Complete failure
+                let errorMessage = `<div class="status-message error"><strong>Upload failed:</strong> ${data.error}</div>`;
+                
+                if (data.details && data.details.length > 0) {
+                    const errorList = data.details.map(error => `<li>${error}</li>`).join('');
+                    errorMessage += `
+                        <div class="status-message error">
+                            <strong>Detailed errors:</strong>
+                            <ul style="margin: 5px 0; padding-left: 20px;">${errorList}</ul>
+                        </div>
+                    `;
+                }
+                
+                uploadStatus.innerHTML = errorMessage;
+            }
+        })
+        .catch(error => {
+            clearInterval(progressInterval);
+            console.error('Upload error:', error);
+            
+            // Re-enable button on error
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+            
+            uploadStatus.innerHTML = `
+                <div class="status-message error">
+                    <strong>Upload failed:</strong> ${error.message || 'Network error occurred'}
+                </div>
+            `;
+        });
+    });
+
+    // Add this function to help debug file issues
+    function validateFiles(files) {
+        const issues = [];
+        files.forEach((file, index) => {
+            console.log(`File ${index + 1}:`, {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: new Date(file.lastModified)
+            });
+            
+            // Check for common issues
+            if (file.size === 0) {
+                issues.push(`${file.name}: File is empty (0 bytes)`);
+            }
+            if (file.size > 16 * 1024 * 1024) {
+                issues.push(`${file.name}: File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB)`);
+            }
+            if (!file.type.startsWith('image/')) {
+                issues.push(`${file.name}: Not an image file (${file.type})`);
+            }
+        });
+        
+        if (issues.length > 0) {
+            console.warn('File validation issues:', issues);
+            return issues;
+        }
+        return [];
+    }
+
+    // Debug function to see what's being sent to the server
+    async function debugUpload(formData) {
+        try {
+            const response = await fetch('/debug_upload', {
+                method: 'POST',
+                body: formData
+            });
+            const debugInfo = await response.json();
+            console.log('Debug upload info:', debugInfo);
+            return debugInfo;
+        } catch (error) {
+            console.error('Debug upload failed:', error);
+            return null;
+        }
+    }
+
+    function refreshGallery() {
+        const exercise = exerciseFilter.value;
+        const quality = qualityFilter.value;
+        
+        galleryGrid.innerHTML = '<div class="loading-spinner">Loading reference images...</div>';
+        
+        // Load images based on filters
+        if (exercise && quality) {
+            loadReferenceImages(exercise, quality);
+        } else {
+            loadAllReferenceImages();
+        }
+    }
+
+    function loadReferenceImages(exercise, quality) {
+        fetch(`/reference_images/${exercise}/${quality}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            // Add exercise and quality to each image for consistency
+            const imagesWithMetadata = Array.isArray(data) ? 
+                data.map(img => ({
+                    ...img,
+                    exercise: exercise,
+                    quality: quality
+                })) : [];
+            displayImages(imagesWithMetadata, exercise, quality);
+        })
+        .catch(error => {
+            galleryGrid.innerHTML = `<div class="error-message">Error loading images: ${error.message}</div>`;
+        });
+    }
+
+    function loadAllReferenceImages() {
+        const exercises = ['squat', 'pushup', 'plank', 'lunge', 'deadlift'];
+        const qualities = ['proper', 'improper'];
+        const promises = [];
+
+        // Show loading progress
+        galleryGrid.innerHTML = `
+            <div class="loading-spinner">
+                Loading images from ${exercises.length * qualities.length} categories...
+            </div>
+        `;
+
+        exercises.forEach(exercise => {
+            qualities.forEach(quality => {
+                promises.push(
+                    fetch(`/reference_images/${exercise}/${quality}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Check if it's an error response
+                        if (data.error) {
+                            console.warn(`Error loading ${exercise}/${quality}:`, data.error);
+                            return [];
+                        }
+                        // Ensure we have an array and add metadata to each image
+                        if (Array.isArray(data)) {
+                            return data.map(img => ({
+                                ...img,
+                                exercise: exercise,
+                                quality: quality
+                            }));
+                        }
+                        return [];
+                    })
+                    .catch(error => {
+                        console.warn(`Failed to load ${exercise}/${quality}:`, error);
+                        return [];
+                    })
+                );
+            });
+        });
+
+        Promise.all(promises)
+        .then(results => {
+            // Flatten and deduplicate images by file_path
+            const allImages = results.flat();
+            const uniqueImages = deduplicateImages(allImages);
+            displayImages(uniqueImages);
+        })
+        .catch(error => {
+            galleryGrid.innerHTML = `<div class="error-message">Error loading images: ${error}</div>`;
+        });
+    }
+
+    // Helper function to remove duplicate images
+    function deduplicateImages(images) {
+        const seen = new Set();
+        return images.filter(img => {
+            // Use file_path as unique identifier
+            const identifier = img.file_path;
+            if (seen.has(identifier)) {
+                return false;
+            }
+            seen.add(identifier);
+            return true;
+        });
+    }
+
+    function displayImages(images, filterExercise = null, filterQuality = null) {
+        if (!images || images.length === 0) {
+            galleryGrid.innerHTML = '<div class="no-images">No reference images found.</div>';
+            return;
+        }
+
+        console.log(`Displaying ${images.length} images`); // Debug log
+
+        let html = '';
+        images.forEach(img => {
+            // Use the image's own exercise and quality properties
+            const exercise = img.exercise || 'unknown';
+            const quality = img.quality || 'unknown';
+            const qualityClass = quality === 'proper' ? 'proper' : 'improper';
+            
+            html += `
+                <div class="reference-image-card">
+                    <img src="${img.image}" alt="${exercise} ${quality}" class="reference-image">
+                    <div class="image-info">
+                        <div class="exercise-type">${exercise.charAt(0).toUpperCase() + exercise.slice(1)}</div>
+                        <div class="quality-badge ${qualityClass}">${quality.charAt(0).toUpperCase() + quality.slice(1)}</div>
+                        <div class="timestamp">${new Date(img.timestamp).toLocaleDateString()}</div>
+                    </div>
+                    <button class="delete-btn" data-file-path="${img.file_path}" data-exercise="${exercise}" data-quality="${quality}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                </div>
+            `;
+        });
+        
+        galleryGrid.innerHTML = html;
+        
+        // Add delete functionality
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete this reference image?')) {
+                    deleteReferenceImage(this);
+                }
+            });
+        });
+    }
+
+    function deleteReferenceImage(button) {
+        const filePath = button.dataset.filePath;
+        const exercise = button.dataset.exercise;
+        const quality = button.dataset.quality;
+        
+        fetch('/delete_reference', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_path: filePath,
+                exercise_type: exercise,
+                form_quality: quality
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                refreshGallery();
+                updateStats();
+                uploadStatus.innerHTML = `<div class="status-message success">Reference image deleted</div>`;
+            } else {
+                uploadStatus.innerHTML = `<div class="status-message error">Error deleting image: ${data.error}</div>`;
+            }
+        })
+        .catch(error => {
+            uploadStatus.innerHTML = `<div class="status-message error">Delete failed: ${error}</div>`;
+        });
+    }
+
+    function updateStats() {
+        fetch('/training_stats')
+        .then(response => response.json())
+        .then(stats => {
+            // Update stats display
+            location.reload(); // Simple refresh for now
+        });
+    }
+
+    // Event listeners
+    refreshBtn.addEventListener('click', refreshGallery);
+    exerciseFilter.addEventListener('change', refreshGallery);
+    qualityFilter.addEventListener('change', refreshGallery);
+
+    // Initial load
+    refreshGallery();
+});
+</script>
+{% endblock %}
