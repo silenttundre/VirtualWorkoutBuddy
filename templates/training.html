@@ -12,7 +12,18 @@
 
     <!-- Training Statistics -->
     <section class="training-stats">
-        <h3>Current Training Data</h3>
+        <div class="stats-header">
+            <h3>Current Training Data</h3>
+            <button id="refresh-stats" class="refresh-stats-btn" title="Refresh Statistics">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 4v6h-6"></path>
+                    <path d="M1 20v-6h6"></path>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+                    <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+                </svg>
+                Refresh
+            </button>
+        </div>
         <div class="stats-grid">
             {% for exercise, data in stats.items() %}
             <div class="stat-card">
@@ -80,7 +91,12 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="submit-btn">Add Training Images</button>
+                    <button type="submit" class="submit-btn" id="submit-btn">
+                        <span class="btn-text">Add Training Images</span>
+                        <span class="btn-loading" style="display: none;">
+                            <span class="spinner"></span> Uploading...
+                        </span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -143,9 +159,228 @@
 </section>
 
 <style>
+    .stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.refresh-stats-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.refresh-stats-btn:hover {
+    background: #5a6268;
+}
+
+.refresh-stats-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.training-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+.training-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.training-header h2 {
+    color: #3a5bef;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.training-header p {
+    font-size: 1.1rem;
+    color: #666;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Training Stats */
+.training-stats {
+    margin-bottom: 3rem;
+}
+
+.training-stats h3 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card h4 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.stat-numbers {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-item.proper .count {
+    color: #28a745;
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: block;
+}
+
+.stat-item.improper .count {
+    color: #dc3545;
+    font-size: 1.8rem;
+    font-weight: bold;
+    display: block;
+}
+
+.stat-item .label {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.total-stat {
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+    padding-top: 1rem;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Training Upload */
+.training-upload {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 3rem;
+    border: 1px solid #e9ecef;
+}
+
+.training-upload h3 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.form-group select {
+    padding: 0.75rem;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-group select:focus {
+    outline: none;
+    border-color: #3a5bef;
+}
+
+.file-upload-area {
+    margin-bottom: 1.5rem;
+}
+
+.upload-zone {
+    border: 2px dashed #ced4da;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: #f8f9fa;
+}
+
+.upload-zone.dragover {
+    border-color: #3a5bef;
+    background: rgba(58, 91, 239, 0.05);
+}
+
+.upload-icon {
+    color: #3a5bef;
+    margin-bottom: 1rem;
+}
+
+.upload-zone p {
+    margin: 0.5rem 0;
+    color: #666;
+}
+
+.file-button {
+    background: #3a5bef;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-block;
+    transition: background-color 0.2s ease;
+    margin-top: 1rem;
+}
+
+.file-button:hover {
+    background: #2a4bd4;
+}
+
 .file-list {
-    margin-top: 10px;
-    max-height: 150px;
+    margin-top: 1rem;
+    max-height: 200px;
     overflow-y: auto;
 }
 
@@ -153,11 +388,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 5px 10px;
-    margin: 5px 0;
-    background: #f8f9fa;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
 }
 
 .file-name {
@@ -165,18 +400,79 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    margin-right: 1rem;
 }
 
 .file-size {
     color: #666;
-    font-size: 12px;
-    margin-left: 10px;
+    font-size: 0.85rem;
+    margin-right: 1rem;
+}
+
+.remove-file {
+    background: #dc3545;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.form-actions {
+    text-align: center;
+}
+
+.submit-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    min-width: 200px;
+}
+
+.submit-btn:hover:not(:disabled) {
+    background: #218838;
+}
+
+.submit-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+    margin-right: 0.5rem;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Upload Status */
+.upload-status {
+    margin-top: 1rem;
 }
 
 .status-message {
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 4px;
+    padding: 1rem;
+    border-radius: 6px;
+    margin: 0.5rem 0;
 }
 
 .status-message.success {
@@ -197,12 +493,71 @@
     border: 1px solid #bee5eb;
 }
 
+/* Reference Gallery */
+.reference-gallery {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 3rem;
+    border: 1px solid #e9ecef;
+}
+
+.reference-gallery h3 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.gallery-controls {
+    margin-bottom: 1.5rem;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-controls select {
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+.refresh-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.refresh-btn:hover {
+    background: #5a6268;
+}
+
+.reference-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
 .reference-image-card {
-    position: relative;
-    border: 1px solid #ddd;
+    background: white;
+    border: 1px solid #e9ecef;
     border-radius: 8px;
     overflow: hidden;
-    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.reference-image-card:hover {
+    transform: translateY(-2px);
 }
 
 .reference-image {
@@ -212,16 +567,21 @@
 }
 
 .image-info {
-    padding: 10px;
+    padding: 1rem;
+}
+
+.exercise-type {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.5rem;
 }
 
 .quality-badge {
     display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: bold;
-    margin-top: 5px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .quality-badge.proper {
@@ -234,11 +594,17 @@
     color: #721c24;
 }
 
+.timestamp {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
 .delete-btn {
     position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(255, 255, 255, 0.9);
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(255,255,255,0.9);
     border: none;
     border-radius: 50%;
     width: 30px;
@@ -253,39 +619,67 @@
 
 .delete-btn:hover {
     opacity: 1;
-    background: rgba(255, 255, 255, 1);
+    background: white;
 }
 
-/* Add these new styles */
-.submit-btn {
+/* Instructions */
+.training-instructions {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e9ecef;
+}
+
+.training-instructions h3 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.instructions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.instruction-card {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #3a5bef;
+}
+
+.instruction-card h4 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.instruction-card ul {
+    list-style: none;
+    padding: 0;
+}
+
+.instruction-card li {
+    padding: 0.25rem 0;
     position: relative;
+    padding-left: 1.5rem;
 }
 
-.submit-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+.instruction-card li:before {
+    content: "•";
+    color: #3a5bef;
+    font-weight: bold;
+    position: absolute;
+    left: 0.5rem;
 }
 
-.spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
-    margin-right: 10px;
-    vertical-align: middle;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
+/* Loading and Error States */
 .loading-spinner {
     text-align: center;
-    padding: 20px;
+    padding: 3rem;
     color: #666;
+    grid-column: 1 / -1;
 }
 
 .loading-spinner::after {
@@ -301,11 +695,26 @@
     vertical-align: middle;
 }
 
+.error-message {
+    text-align: center;
+    padding: 2rem;
+    color: #dc3545;
+    grid-column: 1 / -1;
+}
+
+.no-images {
+    text-align: center;
+    padding: 3rem;
+    color: #666;
+    grid-column: 1 / -1;
+}
+
+/* Progress Bar */
 .upload-progress {
-    margin-top: 10px;
-    padding: 10px;
+    margin-top: 1rem;
+    padding: 1rem;
     background: #f8f9fa;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid #e9ecef;
 }
 
@@ -314,20 +723,44 @@
     background: #e9ecef;
     border-radius: 3px;
     overflow: hidden;
-    margin-top: 5px;
+    margin-top: 0.5rem;
 }
 
 .progress-fill {
     height: 100%;
-    background: #007bff;
+    background: #28a745;
     width: 0%;
     transition: width 0.3s ease;
 }
 
 .progress-text {
-    font-size: 12px;
+    font-size: 0.85rem;
     color: #666;
-    margin-top: 5px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .instructions-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .reference-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
 }
 </style>
 
@@ -342,6 +775,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const exerciseFilter = document.getElementById('gallery-exercise-filter');
     const qualityFilter = document.getElementById('gallery-quality-filter');
     const refreshBtn = document.getElementById('refresh-gallery');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
 
     let selectedFiles = [];
 
@@ -414,209 +850,194 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form submission
+    // Add this function to update stats
+    function updateTrainingStats() {
+        fetch('/training_stats')
+        .then(response => response.json())
+        .then(stats => {
+            // Update the stats display without reloading the page
+            updateStatsDisplay(stats);
+        })
+        .catch(error => {
+            console.error('Error updating stats:', error);
+        });
+    }
+
+    // Add this function to update the stats display
+    function updateStatsDisplay(stats) {
+        const statsGrid = document.querySelector('.stats-grid');
+        if (!statsGrid) return;
+        
+        let html = '';
+        for (const [exercise, data] of Object.entries(stats)) {
+            html += `
+                <div class="stat-card">
+                    <h4>${exercise.charAt(0).toUpperCase() + exercise.slice(1)}</h4>
+                    <div class="stat-numbers">
+                        <div class="stat-item proper">
+                            <span class="count">${data.proper_references}</span>
+                            <span class="label">Proper Examples</span>
+                        </div>
+                        <div class="stat-item improper">
+                            <span class="count">${data.improper_references}</span>
+                            <span class="label">Improper Examples</span>
+                        </div>
+                    </div>
+                    <div class="total-stat">
+                        Total: ${data.total_references} references
+                    </div>
+                </div>
+            `;
+        }
+        statsGrid.innerHTML = html;
+    }
+
+    // Update the form submission success handler
     trainingForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        // Get the submit button
-        const submitBtn = this.querySelector('.submit-btn');
-        const originalBtnText = submitBtn.innerHTML;
-        
         // Basic validation
         if (selectedFiles.length === 0) {
-            uploadStatus.innerHTML = '<div class="status-message error">Please select at least one file</div>';
+            showStatus('Please select at least one file', 'error');
             return;
         }
         
         // Validate files before upload
         const validationIssues = validateFiles(selectedFiles);
         if (validationIssues.length > 0) {
-            const issueList = validationIssues.map(issue => `<li>${issue}</li>`).join('');
-            uploadStatus.innerHTML = `
-                <div class="status-message error">
-                    <strong>File validation failed:</strong>
-                    <ul style="margin: 5px 0; padding-left: 20px;">${issueList}</ul>
-                </div>
-            `;
+            showStatus(`File validation failed: ${validationIssues.join(', ')}`, 'error');
             return;
         }
         
         // Show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span>Uploading...';
+        setLoadingState(true);
         
-        // Log files for debugging
-        console.log(`Uploading ${selectedFiles.length} files:`);
-        selectedFiles.forEach((file, index) => {
-            console.log(`File ${index + 1}: ${file.name} (${file.size} bytes, ${file.type})`);
-        });
+        console.log(`Uploading ${selectedFiles.length} files:`, selectedFiles.map(f => ({name: f.name, size: f.size, type: f.type})));
         
         // Create form data
-        const formData = new FormData(this);
-        selectedFiles.forEach(file => {
-            formData.append('file', file);
+        const formData = new FormData();
+        formData.append('exercise_type', document.getElementById('training-exercise-select').value);
+        formData.append('form_quality', document.getElementById('form-quality-select').value);
+        
+        // Append each file
+        selectedFiles.forEach((file, index) => {
+            console.log(`- Appending file ${index}:`, file.name, file.size, file.type);
+            formData.append('file', file, file.name);
         });
         
-        // DEBUG: Check what files are being sent
-        console.log('FormData entries:');
-        for (let pair of formData.entries()) {
-            console.log(pair[0], pair[1]);
-        }
-        
-        // DEBUG: Uncomment the next line to see detailed server-side debug info
-        // console.log('Debug upload info:', await debugUpload(formData));
-        
         // Show upload progress
-        uploadStatus.innerHTML = `
-            <div class="status-message loading">
-                <div>Uploading ${selectedFiles.length} training images...</div>
-                <div class="upload-progress">
-                    <div>Processing files: <span class="progress-text">0/${selectedFiles.length}</span></div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill"></div>
-                    </div>
-                </div>
-            </div>
-        `;
+        showUploadProgress(selectedFiles.length);
         
-        const progressFill = document.getElementById('progress-fill');
-        const progressText = document.querySelector('.progress-text');
-        
-        // Simulate progress
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            if (progress < 80) { // Stop at 80% to leave room for actual processing
-                progress += 10;
-                progressFill.style.width = `${progress}%`;
-            }
-        }, 500);
-        
-        // Make the upload request
-        fetch('/upload_training', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            clearInterval(progressInterval);
-            progressFill.style.width = '100%';
-            return response.json();
-        })
-        .then(data => {
+        try {
+            const response = await fetch('/upload_training', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
             console.log('Upload response:', data);
             
-            // Always re-enable button first
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-            
             if (data.success) {
-                let successMessage = `<div class="status-message success">${data.message}</div>`;
+                let successMessage = data.message;
                 
                 // Show individual file errors if any
                 if (data.errors && data.errors.length > 0) {
                     const errorList = data.errors.map(error => `<li>${error}</li>`).join('');
-                    successMessage += `
-                        <div class="status-message error">
-                            <strong>Some files had issues:</strong>
-                            <ul style="margin: 5px 0; padding-left: 20px;">${errorList}</ul>
-                        </div>
-                    `;
+                    successMessage += `<div style="margin-top: 10px;"><strong>Files with errors:</strong><ul style="margin: 5px 0; padding-left: 20px;">${errorList}</ul></div>`;
                 }
                 
-                uploadStatus.innerHTML = successMessage;
+                showStatus(successMessage, 'success');
                 
                 // Reset form and refresh data
                 trainingForm.reset();
                 selectedFiles = [];
                 updateFileList();
                 refreshGallery();
-                updateStats();
+                
+                // UPDATE STATS AFTER SUCCESSFUL UPLOAD
+                updateTrainingStats();
                 
             } else {
                 // Complete failure
-                let errorMessage = `<div class="status-message error"><strong>Upload failed:</strong> ${data.error}</div>`;
-                
+                let errorMessage = data.error || 'Upload failed';
                 if (data.details && data.details.length > 0) {
-                    const errorList = data.details.map(error => `<li>${error}</li>`).join('');
-                    errorMessage += `
-                        <div class="status-message error">
-                            <strong>Detailed errors:</strong>
-                            <ul style="margin: 5px 0; padding-left: 20px;">${errorList}</ul>
-                        </div>
-                    `;
+                    const detailList = data.details.map(detail => `<li>${detail}</li>`).join('');
+                    errorMessage += `<ul style="margin: 5px 0; padding-left: 20px;">${detailList}</ul>`;
                 }
-                
-                uploadStatus.innerHTML = errorMessage;
+                showStatus(errorMessage, 'error');
             }
-        })
-        .catch(error => {
-            clearInterval(progressInterval);
+            
+        } catch (error) {
             console.error('Upload error:', error);
-            
-            // Re-enable button on error
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-            
-            uploadStatus.innerHTML = `
-                <div class="status-message error">
-                    <strong>Upload failed:</strong> ${error.message || 'Network error occurred'}
-                </div>
-            `;
-        });
+            showStatus(`Upload failed: ${error.message || 'Network error'}`, 'error');
+        } finally {
+            setLoadingState(false);
+            hideUploadProgress();
+        }
     });
 
-    // Add this function to help debug file issues
+    function setLoadingState(loading) {
+        submitBtn.disabled = loading;
+        if (loading) {
+            btnText.style.display = 'none';
+            btnLoading.style.display = 'inline';
+        } else {
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+        }
+    }
+
+    function showStatus(message, type) {
+        uploadStatus.innerHTML = `<div class="status-message ${type}">${message}</div>`;
+    }
+
+    function showUploadProgress(totalFiles) {
+        uploadStatus.innerHTML = `
+            <div class="status-message loading">
+                <div>Uploading ${totalFiles} training images...</div>
+                <div class="upload-progress">
+                    <div>Processing files: <span class="progress-text">0/${totalFiles}</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function hideUploadProgress() {
+        const progressMessage = uploadStatus.querySelector('.status-message.loading');
+        if (progressMessage) {
+            progressMessage.remove();
+        }
+    }
+
     function validateFiles(files) {
         const issues = [];
-        files.forEach((file, index) => {
-            console.log(`File ${index + 1}:`, {
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                lastModified: new Date(file.lastModified)
-            });
-            
-            // Check for common issues
+        const maxSize = 16 * 1024 * 1024; // 16MB
+        
+        files.forEach(file => {
             if (file.size === 0) {
-                issues.push(`${file.name}: File is empty (0 bytes)`);
+                issues.push(`${file.name}: File is empty`);
             }
-            if (file.size > 16 * 1024 * 1024) {
-                issues.push(`${file.name}: File is too large (${(file.size / (1024 * 1024)).toFixed(2)} MB)`);
+            if (file.size > maxSize) {
+                issues.push(`${file.name}: File too large (${formatFileSize(file.size)})`);
             }
             if (!file.type.startsWith('image/')) {
-                issues.push(`${file.name}: Not an image file (${file.type})`);
+                issues.push(`${file.name}: Not an image file`);
             }
         });
         
-        if (issues.length > 0) {
-            console.warn('File validation issues:', issues);
-            return issues;
-        }
-        return [];
+        return issues;
     }
 
-    // Debug function to see what's being sent to the server
-    async function debugUpload(formData) {
-        try {
-            const response = await fetch('/debug_upload', {
-                method: 'POST',
-                body: formData
-            });
-            const debugInfo = await response.json();
-            console.log('Debug upload info:', debugInfo);
-            return debugInfo;
-        } catch (error) {
-            console.error('Debug upload failed:', error);
-            return null;
-        }
-    }
-
+    // Gallery functionality
     function refreshGallery() {
         const exercise = exerciseFilter.value;
         const quality = qualityFilter.value;
         
         galleryGrid.innerHTML = '<div class="loading-spinner">Loading reference images...</div>';
         
-        // Load images based on filters
         if (exercise && quality) {
             loadReferenceImages(exercise, quality);
         } else {
@@ -631,14 +1052,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.error) {
                 throw new Error(data.error);
             }
-            // Add exercise and quality to each image for consistency
-            const imagesWithMetadata = Array.isArray(data) ? 
-                data.map(img => ({
-                    ...img,
-                    exercise: exercise,
-                    quality: quality
-                })) : [];
-            displayImages(imagesWithMetadata, exercise, quality);
+            displayImages(Array.isArray(data) ? data : []);
         })
         .catch(error => {
             galleryGrid.innerHTML = `<div class="error-message">Error loading images: ${error.message}</div>`;
@@ -648,35 +1062,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadAllReferenceImages() {
         const exercises = ['squat', 'pushup', 'plank', 'lunge', 'deadlift'];
         const qualities = ['proper', 'improper'];
-        const promises = [];
-
-        // Show loading progress
-        galleryGrid.innerHTML = `
-            <div class="loading-spinner">
-                Loading images from ${exercises.length * qualities.length} categories...
-            </div>
-        `;
+        const allPromises = [];
 
         exercises.forEach(exercise => {
             qualities.forEach(quality => {
-                promises.push(
+                allPromises.push(
                     fetch(`/reference_images/${exercise}/${quality}`)
                     .then(response => response.json())
                     .then(data => {
-                        // Check if it's an error response
                         if (data.error) {
                             console.warn(`Error loading ${exercise}/${quality}:`, data.error);
                             return [];
                         }
-                        // Ensure we have an array and add metadata to each image
-                        if (Array.isArray(data)) {
-                            return data.map(img => ({
-                                ...img,
-                                exercise: exercise,
-                                quality: quality
-                            }));
-                        }
-                        return [];
+                        return Array.isArray(data) ? data : [];
                     })
                     .catch(error => {
                         console.warn(`Failed to load ${exercise}/${quality}:`, error);
@@ -686,43 +1084,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        Promise.all(promises)
+        Promise.all(allPromises)
         .then(results => {
-            // Flatten and deduplicate images by file_path
             const allImages = results.flat();
-            const uniqueImages = deduplicateImages(allImages);
-            displayImages(uniqueImages);
+            displayImages(allImages);
         })
         .catch(error => {
             galleryGrid.innerHTML = `<div class="error-message">Error loading images: ${error}</div>`;
         });
     }
 
-    // Helper function to remove duplicate images
-    function deduplicateImages(images) {
-        const seen = new Set();
-        return images.filter(img => {
-            // Use file_path as unique identifier
-            const identifier = img.file_path;
-            if (seen.has(identifier)) {
-                return false;
-            }
-            seen.add(identifier);
-            return true;
-        });
-    }
-
-    function displayImages(images, filterExercise = null, filterQuality = null) {
+    function displayImages(images) {
         if (!images || images.length === 0) {
             galleryGrid.innerHTML = '<div class="no-images">No reference images found.</div>';
             return;
         }
 
-        console.log(`Displaying ${images.length} images`); // Debug log
-
         let html = '';
         images.forEach(img => {
-            // Use the image's own exercise and quality properties
             const exercise = img.exercise || 'unknown';
             const quality = img.quality || 'unknown';
             const qualityClass = quality === 'proper' ? 'proper' : 'improper';
@@ -738,7 +1117,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button class="delete-btn" data-file-path="${img.file_path}" data-exercise="${exercise}" data-quality="${quality}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m5 0V4a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"></path>
+                            <path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                            <path d="m9 6 1-2h4l1 2"></path>
                         </svg>
                     </button>
                 </div>
@@ -776,24 +1156,16 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                showStatus('Reference image deleted successfully', 'success');
                 refreshGallery();
-                updateStats();
-                uploadStatus.innerHTML = `<div class="status-message success">Reference image deleted</div>`;
+                // UPDATE STATS AFTER DELETE TOO
+                updateTrainingStats();
             } else {
-                uploadStatus.innerHTML = `<div class="status-message error">Error deleting image: ${data.error}</div>`;
+                showStatus(`Error deleting image: ${data.error}`, 'error');
             }
         })
         .catch(error => {
-            uploadStatus.innerHTML = `<div class="status-message error">Delete failed: ${error}</div>`;
-        });
-    }
-
-    function updateStats() {
-        fetch('/training_stats')
-        .then(response => response.json())
-        .then(stats => {
-            // Update stats display
-            location.reload(); // Simple refresh for now
+            showStatus(`Delete failed: ${error}`, 'error');
         });
     }
 
@@ -805,5 +1177,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial load
     refreshGallery();
 });
+
+// Add refresh stats button functionality
+const refreshStatsBtn = document.getElementById('refresh-stats');
+if (refreshStatsBtn) {
+    refreshStatsBtn.addEventListener('click', function() {
+        this.classList.add('loading');
+        updateTrainingStats();
+        // Remove loading class after a short delay
+        setTimeout(() => {
+            this.classList.remove('loading');
+        }, 1000);
+    });
+}
+
+// Optional: Add loading animation for refresh button
+const style = document.createElement('style');
+style.textContent = `
+    .refresh-stats-btn.loading svg {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

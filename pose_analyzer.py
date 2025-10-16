@@ -212,7 +212,7 @@ class EnhancedPoseAnalyzer:
         return image
     
     def add_reference_image(self, image_path, exercise_type, form_quality):
-        """Add a new reference image for training"""
+        """Add a new reference image for training with better error handling"""
         if exercise_type not in self.exercise_classes:
             raise ValueError(f"Invalid exercise type: {exercise_type}")
         
@@ -220,40 +220,153 @@ class EnhancedPoseAnalyzer:
             raise ValueError(f"Invalid form quality: {form_quality}")
         
         try:
+            # Verify the source image exists and is readable
+            if not os.path.exists(image_path):
+                raise ValueError(f"Source image does not exist: {image_path}")
+            
             # Extract keypoints
             keypoints = self.extract_keypoints_from_image(image_path)
             if not keypoints:
-                raise ValueError("Could not extract pose keypoints from image")
+                raise ValueError("Could not extract pose keypoints from image - no human pose detected")
             
-            # Create destination path
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"ref_{timestamp}.jpg"
+            # Count how many confident keypoints we have
+            confident_keypoints = [kp for kp in keypoints if kp['confidence'] > 0.5]
+            if len(confident_keypoints) < 8:  # Need at least 8 confident keypoints
+                raise ValueError(f"Insufficient pose detection (only {len(confident_keypoints)} confident keypoints)")
+            
+            # Create destination path with unique name
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            original_name = os.path.basename(image_path)
+            safe_name = secure_filename(original_name)
+            filename = f"ref_{timestamp}_{safe_name}"
             dest_path = self.reference_root / exercise_type / form_quality / filename
+            
+            # Ensure destination directory exists
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
             
             # Copy image to reference directory
             image = cv2.imread(image_path)
-            cv2.imwrite(str(dest_path), image)
+            if image is None:
+                raise ValueError("Could not read source image with OpenCV")
+            
+            success = cv2.imwrite(str(dest_path), image)
+            if not success:
+                raise ValueError("Failed to save reference image")
+            
+            # Verify the image was saved
+            if not os.path.exists(dest_path):
+                raise ValueError("Reference image was not created")
             
             # Add to reference data
             if exercise_type not in self.reference_positions:
                 self.reference_positions[exercise_type] = {"proper": [], "improper": []}
             
-            self.reference_positions[exercise_type][form_quality].append({
+            reference_data = {
                 "keypoints": keypoints,
                 "file": str(dest_path),
-                "timestamp": datetime.now().isoformat()
-            })
+                "timestamp": datetime.now().isoformat(),
+                "keypoint_count": len(confident_keypoints)
+            }
+            
+            self.reference_positions[exercise_type][form_quality].append(reference_data)
             
             # Save reference data
             self.save_reference_metadata()
             
-            self.logger.info(f"Added reference image: {dest_path}")
+            self.logger.info(f"Added reference image: {dest_path} with {len(confident_keypoints)} keypoints")
             return str(dest_path)
             
         except Exception as e:
-            self.logger.error(f"Error adding reference image: {e}")
+            self.logger.error(f"Error adding reference image {image_path}: {e}")
+            # Clean up any partially created files
+            if 'dest_path' in locals() and os.path.exists(dest_path):
+                try:
+                    os.remove(dest_path)
+                except:
+                    pass
             raise
-    
+    def add_reference_image(self, image_path, exercise_type, form_quality):
+        """Add a new reference image for training with better error handling"""
+        if exercise_type not in self.exercise_classes:
+            raise ValueError(f"Invalid exercise type: {exercise_type}")
+        
+        if form_quality not in ["proper", "improper"]:
+            raise ValueError(f"Invalid form quality: {form_quality}")
+        
+        try:
+            # Verify the source image exists and is readable
+            if not os.path.exists(image_path):
+                raise ValueError(f"Source image does not exist: {image_path}")
+            
+            # Extract keypoints
+            keypoints = self.extract_keypoints_from_image(image_path)
+            if not keypoints:
+                raise ValueError("Could not extract pose keypoints from image - no human pose detected")
+            
+            # Count how many confident keypoints we have
+            confident_keypoints = [kp for kp in keypoints if kp['confidence'] > 0.5]
+            if len(confident_keypoints) < 8:  # Need at least 8 confident keypoints
+                raise ValueError(f"Insufficient pose detection (only {len(confident_keypoints)} confident keypoints)")
+            
+            # Create destination path - KEEP THE ORIGINAL FILENAME
+            original_name = os.path.basename(image_path)
+            dest_path = self.reference_root / exercise_type / form_quality / original_name
+            
+            # Ensure destination directory exists
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # If file already exists, add a simple counter to avoid overwriting
+            counter = 1
+            base_name = os.path.splitext(original_name)[0]
+            extension = os.path.splitext(original_name)[1]
+            
+            while dest_path.exists():
+                new_name = f"{base_name}_{counter}{extension}"
+                dest_path = self.reference_root / exercise_type / form_quality / new_name
+                counter += 1
+            
+            # Copy image to reference directory
+            image = cv2.imread(image_path)
+            if image is None:
+                raise ValueError("Could not read source image with OpenCV")
+            
+            success = cv2.imwrite(str(dest_path), image)
+            if not success:
+                raise ValueError("Failed to save reference image")
+            
+            # Verify the image was saved
+            if not os.path.exists(dest_path):
+                raise ValueError("Reference image was not created")
+            
+            # Add to reference data
+            if exercise_type not in self.reference_positions:
+                self.reference_positions[exercise_type] = {"proper": [], "improper": []}
+            
+            reference_data = {
+                "keypoints": keypoints,
+                "file": str(dest_path),
+                "timestamp": datetime.now().isoformat(),
+                "keypoint_count": len(confident_keypoints)
+            }
+            
+            self.reference_positions[exercise_type][form_quality].append(reference_data)
+            
+            # Save reference data
+            self.save_reference_metadata()
+            
+            self.logger.info(f"Added reference image: {dest_path} with {len(confident_keypoints)} keypoints")
+            return str(dest_path)
+            
+        except Exception as e:
+            self.logger.error(f"Error adding reference image {image_path}: {e}")
+            # Clean up any partially created files
+            if 'dest_path' in locals() and os.path.exists(dest_path):
+                try:
+                    os.remove(dest_path)
+                except:
+                    pass
+            raise
+
     def save_reference_metadata(self):
         """Save reference position metadata to JSON file"""
         metadata_file = self.reference_root / "reference_metadata.json"
@@ -1483,6 +1596,7 @@ class EnhancedPoseAnalyzer:
         stats = {}
         
         for exercise in self.exercise_classes:
+            # Get counts from the actual reference_positions data structure
             proper_count = len(self.reference_positions.get(exercise, {}).get("proper", []))
             improper_count = len(self.reference_positions.get(exercise, {}).get("improper", []))
             

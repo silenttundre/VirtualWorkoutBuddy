@@ -238,111 +238,113 @@ def upload_file():
 
 @app.route('/upload_training', methods=['POST'])
 def upload_training_image():
-    """Handle training image uploads - support multiple files"""
+    """Handle training image uploads - simplified version without complex renaming"""
     try:
-        if 'file' not in request.files:
-            return jsonify({"error": "No file part"})
+        print("=== UPLOAD TRAINING STARTED ===")
         
-        files = request.files.getlist('file')  # Get list of files
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No file part"})
+        
+        files = request.files.getlist('file')
         exercise_type = request.form.get('exercise_type')
-        form_quality = request.form.get('form_quality')  # 'proper' or 'improper'
+        form_quality = request.form.get('form_quality')
+        
+        print(f"Received {len(files)} files for {exercise_type} - {form_quality}")
         
         if not exercise_type or not form_quality:
-            return jsonify({"error": "Exercise type and form quality are required"})
+            return jsonify({"success": False, "error": "Exercise type and form quality are required"})
         
-        if not files or files[0].filename == '':
-            return jsonify({"error": "No selected files"})
+        if not files or all(f.filename == '' for f in files):
+            return jsonify({"success": False, "error": "No selected files"})
         
         successful_uploads = []
         errors = []
-        processed_files = set()  # Track processed files to avoid duplicates
         
-        for file in files:
-            if file and allowed_file(file.filename):
-                # Skip if we've already processed this file (duplicate check)
-                # Use a more reliable identifier
-                file_identifier = f"{file.filename}_{file.content_length or 0}"
-                if file_identifier in processed_files:
-                    errors.append(f"{file.filename}: Duplicate file skipped")
-                    continue
-                
-                processed_files.add(file_identifier)
-                
-                # Save the uploaded file temporarily
-                filename = secure_filename(file.filename)
-                unique_id = str(uuid.uuid4())
-                temp_filename = f"temp_{unique_id}_{filename}"
-                temp_path = os.path.join(app.config['TRAINING_FOLDER'], temp_filename)
-                
+        for i, file in enumerate(files):
+            print(f"Processing file {i+1}/{len(files)}: {file.filename}")
+            
+            if file and file.filename and allowed_file(file.filename):
                 try:
+                    # Create a simple temporary filename
+                    temp_filename = f"temp_{int(time.time())}_{i}_{file.filename}"
+                    temp_path = os.path.join(app.config['TRAINING_FOLDER'], temp_filename)
+                    
+                    print(f"Saving temporary file to: {temp_path}")
+                    
+                    # Save the file
                     file.save(temp_path)
                     
-                    # Check if file was saved successfully
+                    # Verify the file was saved correctly
                     if not os.path.exists(temp_path) or os.path.getsize(temp_path) == 0:
-                        errors.append(f"{file.filename}: File upload failed or empty file")
-                        if os.path.exists(temp_path):
-                            os.remove(temp_path)
+                        errors.append(f"{file.filename}: File failed to save")
                         continue
                     
-                    # Check if this exact file already exists in references to avoid true duplicates
-                    file_hash = None
+                    file_size = os.path.getsize(temp_path)
+                    print(f"File saved successfully: {file_size} bytes")
+                    
+                    # Add to reference images using the pose analyzer
                     try:
-                        import hashlib
-                        with open(temp_path, 'rb') as f:
-                            file_hash = hashlib.md5(f.read()).hexdigest()
-                    except:
-                        pass
+                        reference_path = pose_analyzer.add_reference_image(
+                            temp_path, exercise_type, form_quality
+                        )
+                        
+                        if reference_path and os.path.exists(reference_path):
+                            successful_uploads.append({
+                                "filename": file.filename,
+                                "reference_path": reference_path
+                            })
+                            print(f"Successfully added reference: {reference_path}")
+                        else:
+                            errors.append(f"{file.filename}: Reference image was not created properly")
+                        
+                    except Exception as ref_error:
+                        errors.append(f"{file.filename}: {str(ref_error)}")
+                        print(f"Reference creation error: {ref_error}")
                     
-                    # Add to reference images
-                    reference_path = pose_analyzer.add_reference_image(
-                        temp_path, exercise_type, form_quality
-                    )
+                    # Clean up temporary file regardless of success
+                    finally:
+                        if os.path.exists(temp_path):
+                            os.remove(temp_path)
+                            print(f"Cleaned up temporary file: {temp_path}")
                     
-                    # Verify the reference was actually added
-                    if reference_path and os.path.exists(reference_path):
-                        successful_uploads.append({
-                            "filename": file.filename,
-                            "reference_path": reference_path
-                        })
-                    else:
-                        errors.append(f"{file.filename}: Failed to add as reference image - reference path not created")
+                except Exception as file_error:
+                    error_msg = f"{file.filename}: {str(file_error)}"
+                    errors.append(error_msg)
+                    print(f"File processing error: {error_msg}")
                     
-                    # Clean up temporary file
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-                    
-                except Exception as e:
                     # Clean up temporary file on error
-                    if os.path.exists(temp_path):
+                    if 'temp_path' in locals() and os.path.exists(temp_path):
                         os.remove(temp_path)
-                    errors.append(f"{file.filename}: {str(e)}")
-                    print(f"Error processing {file.filename}: {str(e)}")
             else:
-                errors.append(f"{file.filename}: File type not allowed or invalid file")
+                error_msg = f"{file.filename if file and file.filename else 'Unknown file'}: Invalid file type or empty filename"
+                errors.append(error_msg)
+        
+        print(f"Upload completed: {len(successful_uploads)} successful, {len(errors)} errors")
         
         # Return detailed response
         if successful_uploads:
             response_data = {
                 "success": True,
                 "message": f"Successfully added {len(successful_uploads)} reference image(s)",
-                "uploads": successful_uploads,
-                "errors": errors
+                "uploaded_count": len(successful_uploads)
             }
-            # If there are any errors, include them even if some uploads were successful
+            
             if errors:
+                response_data["errors"] = errors
                 response_data["has_errors"] = True
-                response_data["message"] += f" ({len(errors)} files had errors)"
+                
             return jsonify(response_data)
         else:
             return jsonify({
                 "success": False,
-                "error": "No files were uploaded successfully", 
+                "error": "No files were uploaded successfully",
                 "details": errors
             })
             
     except Exception as e:
-        print(f"Upload error: {str(e)}")
-        return jsonify({"success": False, "error": f"Upload error: {str(e)}"})
+        error_msg = f"Upload processing error: {str(e)}"
+        print(error_msg)
+        return jsonify({"success": False, "error": error_msg})
 
 @app.route('/debug_upload', methods=['POST'])
 def debug_upload():
