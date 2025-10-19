@@ -17,7 +17,7 @@
   Step 3: Instant feedback with corrections (e.g., "Lower your knees!").<br>
 
 # Technology Stack:
-AI/ML: Pose estimation model (Yolo V5).<br>
+AI/ML: Pose estimation model (Yolo V11).<br>
 Backend: Python, Flask/Django.<br>
 Frontend: HTML/CSS/JavaScript.<br>
 
