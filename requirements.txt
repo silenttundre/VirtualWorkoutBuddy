@@ -1,0 +1,37 @@
+# Core ML and Computer Vision - Python 3.13 Compatible
+ultralytics>=8.3.0
+torch>=2.5.0
+torchvision>=0.20.0
+opencv-python>=4.8.0
+# mediapipe>=0.10.0  # Not yet compatible with Python 3.13
+numpy>=1.21.0
+Pillow>=9.0.0
+
+# Alternative pose estimation (compatible with Python 3.13)
+# We'll use OpenPose or a pure OpenCV solution as fallback
+
+# Web Framework
+Flask>=2.3.0
+Werkzeug>=2.3.0
+
+# Image Processing
+scikit-image>=0.20.0
+imageio>=2.25.0
+
+# Data Science
+pandas>=1.5.0
+matplotlib>=3.6.0
+
+# Utilities
+python-dateutil>=2.8.0
+pytz>=2022.7
+requests>=2.28.0
+
+# Development (optional)
+pytest>=7.0.0
+black>=22.0.0
+flake8>=5.0.0
+
+# CUDA support (uncomment if using GPU)
+# torch-audio  # for CUDA support
+# torchaudio    # for CUDA support
