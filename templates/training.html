@@ -23,6 +23,8 @@
                 </svg>
                 Refresh
             </button>
+            <!-- Add this button next to the refresh button -->
+            <button id="debug-btn" class="refresh-btn" style="background: #ffc107; color: #000;">Debug Loading</button>
         </div>
         <div class="stats-grid">
             {% for exercise, data in stats.items() %}
@@ -85,7 +87,7 @@
                         <p>Drag & drop training images here (multiple files supported)</p>
                         <p>or</p>
                         <label for="training-file-input" class="file-button">Choose Files</label>
-                        <input type="file" id="training-file-input" name="file" accept="image/*" multiple required>
+                        <input type="file" id="training-file-input" name="file" accept="image/*" multiple required style="display: none;">
                         <div id="file-list" class="file-list"></div>
                     </div>
                 </div>
@@ -363,6 +365,13 @@
     color: #666;
 }
 
+
+/* Hide the default file input */
+#training-file-input {
+    display: none !important;
+}
+
+/* Style the custom file button */
 .file-button {
     background: #3a5bef;
     color: white;
@@ -372,6 +381,9 @@
     display: inline-block;
     transition: background-color 0.2s ease;
     margin-top: 1rem;
+    border: none;
+    font-size: 1rem;
+    font-family: inherit;
 }
 
 .file-button:hover {
@@ -384,6 +396,13 @@
     overflow-y: auto;
 }
 
+.file-count {
+    background: #e9ecef;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
 .file-item {
     display: flex;
     justify-content: space-between;
@@ -393,6 +412,11 @@
     background: white;
     border: 1px solid #e9ecef;
     border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.file-item:hover {
+    background: #f8f9fa;
 }
 
 .file-name {
@@ -421,6 +445,11 @@
     align-items: center;
     justify-content: center;
     font-size: 0.8rem;
+    transition: background-color 0.2s ease;
+}
+
+.remove-file:hover {
+    background: #c82333;
 }
 
 .form-actions {
@@ -781,16 +810,59 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let selectedFiles = [];
 
-    // File input change handler
-    fileInput.addEventListener('change', function(e) {
-        selectedFiles = Array.from(e.target.files);
+    // NEW FUNCTION: Add files to selection without replacing existing ones
+    function addFilesToSelection(newFiles) {
+        // Create a Set of existing file names for quick lookup
+        const existingFileNames = new Set(selectedFiles.map(file => file.name + file.size));
+        
+        // Filter out duplicates
+        const uniqueNewFiles = newFiles.filter(file => 
+            !existingFileNames.has(file.name + file.size)
+        );
+        
+        if (uniqueNewFiles.length === 0) {
+            showStatus('All selected files are already in the list', 'error');
+            return;
+        }
+        
+        // Add new files to the selection
+        selectedFiles.push(...uniqueNewFiles);
+        
+        // Update the actual file input
+        updateFileInput();
         updateFileList();
+        
+        showStatus(`Added ${uniqueNewFiles.length} file(s) to selection`, 'success');
+    }
+
+    // NEW FUNCTION: Update the actual file input with all selected files
+    function updateFileInput() {
+        const dt = new DataTransfer();
+        selectedFiles.forEach(file => dt.items.add(file));
+        fileInput.files = dt.files;
+    }
+
+    // File input change handler - UPDATED
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files.length) {
+            const newFiles = Array.from(e.target.files);
+            addFilesToSelection(newFiles);
+        }
     });
 
-    // Update file list display
+    // Update file list display - ENHANCED VERSION
     function updateFileList() {
         fileList.innerHTML = '';
         if (selectedFiles.length > 0) {
+            // Show total count
+            const totalCount = document.createElement('div');
+            totalCount.className = 'file-count';
+            totalCount.innerHTML = `<strong>Total files: ${selectedFiles.length}</strong>`;
+            totalCount.style.padding = '0.5rem';
+            totalCount.style.borderBottom = '1px solid #e9ecef';
+            totalCount.style.marginBottom = '0.5rem';
+            fileList.appendChild(totalCount);
+            
             selectedFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
@@ -806,12 +878,11 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.remove-file').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const index = parseInt(this.dataset.index);
+                    const removedFile = selectedFiles[index];
                     selectedFiles.splice(index, 1);
+                    updateFileInput();
                     updateFileList();
-                    // Update the actual file input
-                    const dt = new DataTransfer();
-                    selectedFiles.forEach(file => dt.items.add(file));
-                    fileInput.files = dt.files;
+                    showStatus(`Removed: ${removedFile.name}`, 'success');
                 });
             });
         }
@@ -826,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
-    // Drag and drop functionality
+    // Drag and drop functionality - FIXED VERSION
     uploadZone.addEventListener('dragover', function(e) {
         e.preventDefault();
         this.classList.add('dragover');
@@ -841,12 +912,9 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         this.classList.remove('dragover');
         if (e.dataTransfer.files.length) {
-            selectedFiles = Array.from(e.dataTransfer.files);
-            // Update the actual file input
-            const dt = new DataTransfer();
-            selectedFiles.forEach(file => dt.items.add(file));
-            fileInput.files = dt.files;
-            updateFileList();
+            // APPEND new files instead of replacing
+            const newFiles = Array.from(e.dataTransfer.files);
+            addFilesToSelection(newFiles);
         }
     });
 
@@ -948,10 +1016,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 showStatus(successMessage, 'success');
                 
-                // Reset form and refresh data
+                // PROPERLY reset form and clear file selection
                 trainingForm.reset();
                 selectedFiles = [];
-                updateFileList();
+                updateFileInput(); // Clear the file input
+                updateFileList(); // Update the display
                 refreshGallery();
                 
                 // UPDATE STATS AFTER SUCCESSFUL UPLOAD
@@ -1199,5 +1268,55 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Add this function to debug reference loading
+async function debugReferenceLoading() {
+    try {
+        console.log('=== DEBUGGING REFERENCE LOADING ===');
+        
+        // Check debug references endpoint
+        const debugResponse = await fetch('/debug_references');
+        const debugData = await debugResponse.json();
+        console.log('Debug references data:', debugData);
+        
+        // Check specific improper references
+        const exercises = ['squat', 'pushup', 'plank', 'lunge', 'deadlift'];
+        
+        for (const exercise of exercises) {
+            const response = await fetch(`/reference_images/${exercise}/improper`);
+            const data = await response.json();
+            console.log(`${exercise}/improper:`, data);
+            
+            // Check if any files exist
+            if (Array.isArray(data) && data.length > 0) {
+                for (const img of data) {
+                    const checkResponse = await fetch('/check_file_exists', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            file_path: img.file_path
+                        })
+                    });
+                    const checkData = await checkResponse.json();
+                    console.log(`File check for ${img.file_path}:`, checkData);
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Debug error:', error);
+    }
+}
+
+// Call this function when you need to debug
+// debugReferenceLoading();
+
+// Add debug button functionality
+const debugBtn = document.getElementById('debug-btn');
+if (debugBtn) {
+    debugBtn.addEventListener('click', debugReferenceLoading);
+}
 </script>
 {% endblock %}

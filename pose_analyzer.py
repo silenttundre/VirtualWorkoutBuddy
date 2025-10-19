@@ -10,12 +10,18 @@ from pathlib import Path
 import logging
 from scipy.spatial import distance
 import math
+from werkzeug.utils import secure_filename
 
 class EnhancedPoseAnalyzer:
     def __init__(self):
+        self.reference_positions = {}
+        self.reference_root = Path("reference_positions")
+        self.reference_metadata_file = self.reference_root / "reference_metadata.json"  # Consistent path
+        
         # Setup logging FIRST
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
+        
         
         # Initialize device
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -56,7 +62,102 @@ class EnhancedPoseAnalyzer:
         self.reference_positions = self.load_reference_positions()
         
         self.logger.info("EnhancedPoseAnalyzer initialized successfully")
-    
+
+        # Load reference metadata - this should be the PRIMARY source
+        self.load_reference_metadata()
+        
+        # Verify that loaded files actually exist
+        self.verify_reference_files()
+        
+        self.logger.info("EnhancedPoseAnalyzer initialized successfully")
+
+    def load_reference_metadata(self):
+        """Load reference metadata from file - PRIMARY LOADER"""
+        try:
+            if os.path.exists(self.reference_metadata_file):
+                with open(self.reference_metadata_file, 'r') as f:
+                    loaded_data = json.load(f)
+                
+                # Convert string paths back to proper format if needed
+                self.reference_positions = self._fix_loaded_references(loaded_data)
+                
+                print(f"Loaded reference metadata: {len(self.reference_positions)} exercises")
+                
+                # Debug: print counts
+                total_refs = 0
+                for exercise, qualities in self.reference_positions.items():
+                    for quality, references in qualities.items():
+                        count = len(references)
+                        total_refs += count
+                        print(f"  {exercise}/{quality}: {count} references")
+                print(f"Total references: {total_refs}")
+                
+            else:
+                print("No reference metadata file found - starting fresh")
+                self.reference_positions = {}
+                # Initialize structure for all exercises
+                for exercise in self.exercise_classes:
+                    self.reference_positions[exercise] = {"proper": [], "improper": []}
+                    
+        except Exception as e:
+            print(f"Error loading reference metadata: {e}")
+            # Initialize empty structure on error
+            self.reference_positions = {}
+            for exercise in self.exercise_classes:
+                self.reference_positions[exercise] = {"proper": [], "improper": []}
+
+    def _fix_loaded_references(self, loaded_data):
+        """Fix any path issues in loaded reference data"""
+        fixed_data = {}
+        
+        for exercise, qualities in loaded_data.items():
+            fixed_data[exercise] = {}
+            for quality, references in qualities.items():
+                fixed_refs = []
+                for ref in references:
+                    # Ensure file paths are correct
+                    if 'file' in ref:
+                        # Convert to string if it's not already
+                        file_path = str(ref['file'])
+                        # Check if path needs fixing
+                        if not file_path.startswith('reference_positions'):
+                            # Reconstruct the correct path
+                            filename = os.path.basename(file_path)
+                            correct_path = self.reference_root / exercise / quality / filename
+                            ref['file'] = str(correct_path)
+                    fixed_refs.append(ref)
+                fixed_data[exercise][quality] = fixed_refs
+        
+        return fixed_data
+
+    def verify_reference_files(self):
+        """Verify that all reference files in metadata actually exist"""
+        missing_files = []
+        
+        for exercise, qualities in self.reference_positions.items():
+            for quality, references in qualities.items():
+                for ref in references:
+                    if 'file' in ref and not os.path.exists(ref['file']):
+                        missing_files.append(ref['file'])
+                        print(f"Missing reference file: {ref['file']}")
+        
+        if missing_files:
+            print(f"Found {len(missing_files)} missing reference files")
+            # Optionally clean up missing references
+            self._clean_missing_references()
+        
+        return len(missing_files) == 0
+
+    def _clean_missing_references(self):
+        """Remove references to missing files"""
+        for exercise, qualities in self.reference_positions.items():
+            for quality in qualities:
+                self.reference_positions[exercise][quality] = [
+                    ref for ref in self.reference_positions[exercise][quality] 
+                    if os.path.exists(ref['file'])
+                ]
+        self.save_reference_metadata()
+        
     def setup_training_directories(self):
         """Create directories for training data"""
         self.training_root = Path("training_data")
@@ -101,31 +202,13 @@ class EnhancedPoseAnalyzer:
             return None
     
     def load_reference_positions(self):
-        """Load reference position data for comparison"""
-        reference_data = {}
+        """Load reference positions from metadata - don't scan directories on every restart"""
+        # This method should just return the already-loaded reference_positions
+        # Or load from metadata if reference_positions is empty
+        if not self.reference_positions:
+            self.load_reference_metadata()
         
-        for exercise in self.exercise_classes:
-            reference_data[exercise] = {
-                "proper": [],
-                "improper": []
-            }
-            
-            # Load proper reference images
-            proper_dir = self.reference_root / exercise / "proper"
-            if proper_dir.exists():
-                for img_file in proper_dir.glob("*.jpg"):
-                    try:
-                        keypoints = self.extract_keypoints_from_image(str(img_file))
-                        if keypoints:
-                            reference_data[exercise]["proper"].append({
-                                "keypoints": keypoints,
-                                "file": str(img_file),
-                                "timestamp": datetime.now().isoformat()
-                            })
-                    except Exception as e:
-                        self.logger.error(f"Error loading reference image {img_file}: {e}")
-        
-        return reference_data
+        return self.reference_positions
     
     def extract_keypoints_from_image(self, image_path):
         """Extract pose keypoints from an image using YOLOv11"""
@@ -211,80 +294,6 @@ class EnhancedPoseAnalyzer:
         
         return image
     
-    def add_reference_image(self, image_path, exercise_type, form_quality):
-        """Add a new reference image for training with better error handling"""
-        if exercise_type not in self.exercise_classes:
-            raise ValueError(f"Invalid exercise type: {exercise_type}")
-        
-        if form_quality not in ["proper", "improper"]:
-            raise ValueError(f"Invalid form quality: {form_quality}")
-        
-        try:
-            # Verify the source image exists and is readable
-            if not os.path.exists(image_path):
-                raise ValueError(f"Source image does not exist: {image_path}")
-            
-            # Extract keypoints
-            keypoints = self.extract_keypoints_from_image(image_path)
-            if not keypoints:
-                raise ValueError("Could not extract pose keypoints from image - no human pose detected")
-            
-            # Count how many confident keypoints we have
-            confident_keypoints = [kp for kp in keypoints if kp['confidence'] > 0.5]
-            if len(confident_keypoints) < 8:  # Need at least 8 confident keypoints
-                raise ValueError(f"Insufficient pose detection (only {len(confident_keypoints)} confident keypoints)")
-            
-            # Create destination path with unique name
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            original_name = os.path.basename(image_path)
-            safe_name = secure_filename(original_name)
-            filename = f"ref_{timestamp}_{safe_name}"
-            dest_path = self.reference_root / exercise_type / form_quality / filename
-            
-            # Ensure destination directory exists
-            dest_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Copy image to reference directory
-            image = cv2.imread(image_path)
-            if image is None:
-                raise ValueError("Could not read source image with OpenCV")
-            
-            success = cv2.imwrite(str(dest_path), image)
-            if not success:
-                raise ValueError("Failed to save reference image")
-            
-            # Verify the image was saved
-            if not os.path.exists(dest_path):
-                raise ValueError("Reference image was not created")
-            
-            # Add to reference data
-            if exercise_type not in self.reference_positions:
-                self.reference_positions[exercise_type] = {"proper": [], "improper": []}
-            
-            reference_data = {
-                "keypoints": keypoints,
-                "file": str(dest_path),
-                "timestamp": datetime.now().isoformat(),
-                "keypoint_count": len(confident_keypoints)
-            }
-            
-            self.reference_positions[exercise_type][form_quality].append(reference_data)
-            
-            # Save reference data
-            self.save_reference_metadata()
-            
-            self.logger.info(f"Added reference image: {dest_path} with {len(confident_keypoints)} keypoints")
-            return str(dest_path)
-            
-        except Exception as e:
-            self.logger.error(f"Error adding reference image {image_path}: {e}")
-            # Clean up any partially created files
-            if 'dest_path' in locals() and os.path.exists(dest_path):
-                try:
-                    os.remove(dest_path)
-                except:
-                    pass
-            raise
     def add_reference_image(self, image_path, exercise_type, form_quality):
         """Add a new reference image for training with better error handling"""
         if exercise_type not in self.exercise_classes:
@@ -1607,3 +1616,20 @@ class EnhancedPoseAnalyzer:
             }
         
         return stats
+
+    def debug_references(self):
+        """Debug method to see what's loaded"""
+        print("=== DEBUG REFERENCES ===")
+        print(f"Metadata file: {self.reference_metadata_file}")
+        print(f"Exists: {os.path.exists(self.reference_metadata_file)}")
+        
+        for exercise in self.exercise_classes:
+            proper = self.reference_positions.get(exercise, {}).get("proper", [])
+            improper = self.reference_positions.get(exercise, {}).get("improper", [])
+            print(f"{exercise}: {len(proper)} proper, {len(improper)} improper")
+            
+            # Check if files exist
+            for ref in improper:
+                if 'file' in ref:
+                    exists = os.path.exists(ref['file'])
+                    print(f"  {ref['file']} - exists: {exists}")

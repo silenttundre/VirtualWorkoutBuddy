@@ -14,6 +14,7 @@ from datetime import datetime
 
 # Import our pose analyzer and chatbot
 from pose_analyzer import EnhancedPoseAnalyzer
+
 from chatbot_feedback import ChatbotFeedback
 
 # Initialize Flask application
@@ -31,7 +32,51 @@ os.makedirs(app.config['TRAINING_FOLDER'], exist_ok=True)
 
 # Initialize PoseAnalyzer and ChatbotFeedback
 pose_analyzer = EnhancedPoseAnalyzer()
+# In app.py after initializing pose_analyzer
+pose_analyzer.debug_references()
 chatbot_feedback = ChatbotFeedback()
+
+@app.route('/debug_references')
+def debug_references():
+    """Debug endpoint to see what references are loaded"""
+    try:
+        debug_info = {
+            'reference_positions': {},
+            'total_references': 0
+        }
+        
+        for exercise, qualities in pose_analyzer.reference_positions.items():
+            debug_info['reference_positions'][exercise] = {}
+            for quality, references in qualities.items():
+                debug_info['reference_positions'][exercise][quality] = {
+                    'count': len(references),
+                    'files': [ref['file'] for ref in references],
+                    'files_exist': [os.path.exists(ref['file']) for ref in references]
+                }
+                debug_info['total_references'] += len(references)
+        
+        return jsonify(debug_info)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+@app.route('/check_file_exists', methods=['POST'])
+def check_file_exists():
+    """Check if specific files exist"""
+    try:
+        data = request.get_json()
+        file_path = data.get('file_path')
+        
+        if not file_path:
+            return jsonify({"error": "No file path provided"})
+        
+        exists = os.path.exists(file_path)
+        return jsonify({
+            "file_path": file_path,
+            "exists": exists,
+            "size": os.path.getsize(file_path) if exists else 0
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 def allowed_file(filename):
     """Check if the file has an allowed extension"""
@@ -440,7 +485,66 @@ def get_reference_images(exercise, quality):
         return jsonify(image_data)
         
     except Exception as e:
-        return jsonify({"error": str(e)})
+        return jsonify({"error": str(e)})@app.route('/reference_images/<exercise>/<quality>')
+
+def get_reference_images(exercise, quality):
+    """Get list of reference images for display"""
+    try:
+        # Debug logging
+        print(f"Loading reference images for: {exercise}/{quality}")
+        
+        # Check if exercise and quality exist in reference_positions
+        if exercise not in pose_analyzer.reference_positions:
+            print(f"Exercise '{exercise}' not found in reference_positions")
+            return jsonify([])
+            
+        if quality not in pose_analyzer.reference_positions[exercise]:
+            print(f"Quality '{quality}' not found for exercise '{exercise}'")
+            return jsonify([])
+        
+        references = pose_analyzer.reference_positions[exercise][quality]
+        print(f"Found {len(references)} references for {exercise}/{quality}")
+        
+        # Convert images to base64 for display
+        image_data = []
+        missing_files = []
+        
+        for ref in references:
+            try:
+                file_path = ref['file']
+                print(f"Checking file: {file_path}")
+                
+                if os.path.exists(file_path):
+                    with open(file_path, "rb") as image_file:
+                        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
+                        image_data.append({
+                            'image': f"data:image/jpeg;base64,{encoded_image}",
+                            'file_path': file_path,
+                            'timestamp': ref['timestamp'],
+                            'exercise': exercise,
+                            'quality': quality
+                        })
+                        print(f"Successfully loaded: {file_path}")
+                else:
+                    missing_files.append(file_path)
+                    print(f"File not found: {file_path}")
+                    
+            except Exception as e:
+                error_msg = f"Error loading image {ref.get('file', 'unknown')}: {e}"
+                print(error_msg)
+                missing_files.append(ref.get('file', 'unknown'))
+                continue
+        
+        if missing_files:
+            print(f"Missing files for {exercise}/{quality}: {missing_files}")
+        
+        print(f"Returning {len(image_data)} images for {exercise}/{quality}")
+        return jsonify(image_data)
+        
+    except Exception as e:
+        error_msg = f"Error in get_reference_images: {str(e)}"
+        print(error_msg)
+        return jsonify({"error": error_msg})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
