@@ -9,6 +9,7 @@ import base64
 from PIL import Image
 import io
 import json
+import requests
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
@@ -35,6 +36,94 @@ pose_analyzer = EnhancedPoseAnalyzer()
 # In app.py after initializing pose_analyzer
 pose_analyzer.debug_references()
 chatbot_feedback = ChatbotFeedback()
+
+# Ollama configuration
+OLLAMA_BASE_URL = "http://localhost:11434"  # Default Ollama URL
+
+@app.route('/chat', methods=['POST'])
+def chat_with_rag():
+    """Handle chatbot messages with RAG from Ollama"""
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '')
+        
+        if not user_message:
+            return jsonify({"error": "No message provided"}), 400
+        
+        # Prepare the prompt with workout context
+        workout_context = """
+        You are Virtual Workout Buddy, an AI fitness assistant. You help users with:
+        - Exercise form analysis and corrections
+        - Workout routines and programming
+        - Fitness advice and guidance
+        - Nutrition tips for athletes
+        - Injury prevention and recovery
+        - Motivation and progress tracking
+        
+        You have access to workout analysis data and can help users understand their form feedback.
+        Be encouraging, professional, and focus on safe exercise practices.
+        """
+        
+        full_prompt = f"{workout_context}\n\nUser: {user_message}\nAssistant:"
+        
+        # Call Ollama API
+        ollama_payload = {
+            "model": "llama2",  # or whatever model you have installed
+            "prompt": full_prompt,
+            "stream": False
+        }
+        
+        try:
+            response = requests.post(
+                f"{OLLAMA_BASE_URL}/api/generate",
+                json=ollama_payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                ollama_response = response.json()
+                bot_response = ollama_response.get('response', 'I apologize, but I cannot process your request right now.')
+                
+                return jsonify({"response": bot_response})
+            else:
+                return jsonify({"response": "I'm currently unavailable. Please try the workout analysis feature or check back later."})
+                
+        except requests.exceptions.RequestException:
+            # Fallback responses if Ollama is not available
+            return handle_fallback_chat(user_message)
+            
+    except Exception as e:
+        print(f"Chat error: {str(e)}")
+        return jsonify({"response": "I'm experiencing technical difficulties. Please try again later."})
+
+def handle_fallback_chat(message):
+    """Provide fallback responses when Ollama is not available"""
+    message_lower = message.lower()
+    
+    if any(word in message_lower for word in ['hello', 'hi', 'hey']):
+        return jsonify({"response": "Hello! I'm Virtual Workout Buddy. While my advanced features are temporarily unavailable, I can still help you with basic workout questions and form analysis uploads."})
+    
+    elif any(word in message_lower for word in ['upload', 'image', 'photo']):
+        return jsonify({"response": "You can upload workout images for analysis by clicking the 'Try It Now' button on the main page. Make sure to select the correct exercise type from the dropdown menu!"})
+    
+    elif any(word in message_lower for word in ['exercise', 'workout']):
+        return jsonify({"response": "I support analysis for squats, push-ups, planks, lunges, deadlifts, and general posture. Upload an image of your exercise form for detailed feedback!"})
+    
+    elif any(word in message_lower for word in ['form', 'technique']):
+        return jsonify({"response": "Proper form is crucial for effective workouts and injury prevention. Upload an image of your exercise, and I'll analyze your alignment, posture, and technique."})
+    
+    else:
+        return jsonify({"response": "I specialize in workout form analysis and fitness guidance. You can upload exercise images for instant feedback, or ask me about specific exercises and proper techniques."})
+
+# Health check for Ollama
+@app.route('/health/ollama')
+def check_ollama_health():
+    """Check if Ollama is running"""
+    try:
+        response = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=5)
+        return jsonify({"status": "connected", "models": response.json().get('models', [])})
+    except:
+        return jsonify({"status": "disconnected"}), 503
 
 @app.route('/debug_references')
 def debug_references():
@@ -485,66 +574,7 @@ def get_reference_images(exercise, quality):
         return jsonify(image_data)
         
     except Exception as e:
-        return jsonify({"error": str(e)})@app.route('/reference_images/<exercise>/<quality>')
-
-def get_reference_images(exercise, quality):
-    """Get list of reference images for display"""
-    try:
-        # Debug logging
-        print(f"Loading reference images for: {exercise}/{quality}")
-        
-        # Check if exercise and quality exist in reference_positions
-        if exercise not in pose_analyzer.reference_positions:
-            print(f"Exercise '{exercise}' not found in reference_positions")
-            return jsonify([])
-            
-        if quality not in pose_analyzer.reference_positions[exercise]:
-            print(f"Quality '{quality}' not found for exercise '{exercise}'")
-            return jsonify([])
-        
-        references = pose_analyzer.reference_positions[exercise][quality]
-        print(f"Found {len(references)} references for {exercise}/{quality}")
-        
-        # Convert images to base64 for display
-        image_data = []
-        missing_files = []
-        
-        for ref in references:
-            try:
-                file_path = ref['file']
-                print(f"Checking file: {file_path}")
-                
-                if os.path.exists(file_path):
-                    with open(file_path, "rb") as image_file:
-                        encoded_image = base64.b64encode(image_file.read()).decode('utf-8')
-                        image_data.append({
-                            'image': f"data:image/jpeg;base64,{encoded_image}",
-                            'file_path': file_path,
-                            'timestamp': ref['timestamp'],
-                            'exercise': exercise,
-                            'quality': quality
-                        })
-                        print(f"Successfully loaded: {file_path}")
-                else:
-                    missing_files.append(file_path)
-                    print(f"File not found: {file_path}")
-                    
-            except Exception as e:
-                error_msg = f"Error loading image {ref.get('file', 'unknown')}: {e}"
-                print(error_msg)
-                missing_files.append(ref.get('file', 'unknown'))
-                continue
-        
-        if missing_files:
-            print(f"Missing files for {exercise}/{quality}: {missing_files}")
-        
-        print(f"Returning {len(image_data)} images for {exercise}/{quality}")
-        return jsonify(image_data)
-        
-    except Exception as e:
-        error_msg = f"Error in get_reference_images: {str(e)}"
-        print(error_msg)
-        return jsonify({"error": error_msg})
+        return jsonify({"error": str(e)})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

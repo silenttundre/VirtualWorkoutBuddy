@@ -69,14 +69,10 @@
                 <img id="result-image" src="" alt="Analyzed workout pose">
             </div>
             <div class="analysis-container">
+                <!-- In the chatbot-header section, replace the SVG with your logo -->
                 <div class="chatbot-header">
                     <div class="chatbot-avatar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M8 14s1.5 2 4 2 4-2 4-2"></path>
-                            <line x1="9" y1="9" x2="9.01" y2="9"></line>
-                            <line x1="15" y1="9" x2="15.01" y2="9"></line>
-                        </svg>
+                        <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Virtual Workout Buddy" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                     </div>
                     <h3>Workout Buddy</h3>
                 </div>
@@ -109,8 +105,12 @@
         </svg>
     </div>
     <div class="chatbot-card" id="chatbot-card">
+        <!-- Also update the chatbot-card-header -->
         <div class="chatbot-card-header">
-            <h3>Workout Buddy Assistant</h3>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='images/logo.jpg') }}" alt="Logo" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
+                <h3>Virtual Workout Buddy Assistant</h3>
+            </div>
             <button class="close-chatbot">&times;</button>
         </div>
         <div class="chatbot-card-body" id="chatbot-card-body">

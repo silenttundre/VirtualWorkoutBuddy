@@ -1100,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return issues;
     }
 
-    // Gallery functionality
+    // Gallery functionality - FIXED VERSION
     function refreshGallery() {
         const exercise = exerciseFilter.value;
         const quality = qualityFilter.value;
@@ -1108,10 +1108,82 @@ document.addEventListener('DOMContentLoaded', function() {
         galleryGrid.innerHTML = '<div class="loading-spinner">Loading reference images...</div>';
         
         if (exercise && quality) {
+            // Specific exercise and quality
             loadReferenceImages(exercise, quality);
+        } else if (exercise && !quality) {
+            // Specific exercise, all qualities
+            loadExerciseAllQualities(exercise);
+        } else if (!exercise && quality) {
+            // All exercises, specific quality
+            loadQualityAllExercises(quality);
         } else {
+            // All exercises, all qualities
             loadAllReferenceImages();
         }
+    }
+
+    function loadExerciseAllQualities(exercise) {
+        const qualities = ['proper', 'improper'];
+        const allPromises = [];
+
+        qualities.forEach(quality => {
+            allPromises.push(
+                fetch(`/reference_images/${exercise}/${quality}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.warn(`Error loading ${exercise}/${quality}:`, data.error);
+                        return [];
+                    }
+                    return Array.isArray(data) ? data : [];
+                })
+                .catch(error => {
+                    console.warn(`Failed to load ${exercise}/${quality}:`, error);
+                    return [];
+                })
+            );
+        });
+
+        Promise.all(allPromises)
+        .then(results => {
+            const allImages = results.flat();
+            displayImages(allImages);
+        })
+        .catch(error => {
+            galleryGrid.innerHTML = `<div class="error-message">Error loading images: ${error}</div>`;
+        });
+    }
+
+    function loadQualityAllExercises(quality) {
+        const exercises = ['squat', 'pushup', 'plank', 'lunge', 'deadlift'];
+        const allPromises = [];
+
+        exercises.forEach(exercise => {
+            allPromises.push(
+                fetch(`/reference_images/${exercise}/${quality}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.warn(`Error loading ${exercise}/${quality}:`, data.error);
+                        return [];
+                    }
+                    return Array.isArray(data) ? data : [];
+                })
+                .catch(error => {
+                    console.warn(`Failed to load ${exercise}/${quality}:`, error);
+                    return [];
+                })
+            );
+        });
+
+        Promise.all(allPromises)
+        .then(results => {
+            const allImages = results.flat();
+            displayImages(allImages);
+        })
+        .catch(error => {
+            galleryGrid.innerHTML = `<div class="error-message">Error loading images: ${error}</div>`;
+        });
     }
 
     function loadReferenceImages(exercise, quality) {
@@ -1165,11 +1237,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayImages(images) {
         if (!images || images.length === 0) {
-            galleryGrid.innerHTML = '<div class="no-images">No reference images found.</div>';
+            galleryGrid.innerHTML = '<div class="no-images">No reference images found for the selected filters.</div>';
             return;
         }
 
+        // Get current filter values for display context
+        const exerciseFilter = document.getElementById('gallery-exercise-filter').value;
+        const qualityFilter = document.getElementById('gallery-quality-filter').value;
+        
         let html = '';
+        
+        // Optional: Add filter info header
+        const filterInfo = document.createElement('div');
+        filterInfo.className = 'filter-info';
+        filterInfo.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 1rem;';
+        
+        let filterText = 'Showing all exercises and qualities';
+        if (exerciseFilter && qualityFilter) {
+            filterText = `Showing ${exerciseFilter} - ${qualityFilter} form`;
+        } else if (exerciseFilter) {
+            filterText = `Showing all ${exerciseFilter} images (proper and improper)`;
+        } else if (qualityFilter) {
+            filterText = `Showing ${qualityFilter} form for all exercises`;
+        }
+        
+        filterInfo.innerHTML = `<strong>${filterText}</strong> - ${images.length} image(s) found`;
+        galleryGrid.innerHTML = '';
+        galleryGrid.appendChild(filterInfo);
+
         images.forEach(img => {
             const exercise = img.exercise || 'unknown';
             const quality = img.quality || 'unknown';
@@ -1194,7 +1289,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         });
         
-        galleryGrid.innerHTML = html;
+        galleryGrid.innerHTML += html;
         
         // Add delete functionality
         document.querySelectorAll('.delete-btn').forEach(btn => {
